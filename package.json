@@ -9,6 +9,8 @@
     "copy": "cpr src/ build/",
     "build:parser": "pegjs --allowed-start-rules Sort,Filter --dependency Identifier:./Identifier.js -o build/parser.js build/grammar.pegjs",
     "build": "npm run clean && npm run copy && npm run build:parser",
+    "test": "npm run build && npm run test:built",
+    "test:built": "NODE_ENV=testing mocha --recursive test/ --full-trace --check-leaks",
     "prepare": "npm run build"
   },
   "author": "Ethan Resnick <ethan.resnick@gmail.com>",
