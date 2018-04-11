@@ -1,0 +1,25 @@
+{
+  "name": "@json-api/query-parser",
+  "version": "0.0.2",
+  "description": "A query parser for the ?filter and ?sort param syntax used by @json-api/server",
+  "main": "index.js",
+  "typings": "index.d.ts",
+  "scripts": {
+    "clean": "rimraf build",
+    "copy": "cpr src/ build/",
+    "build:parser": "pegjs --allowed-start-rules Sort,Filter --dependency Identifier:./Identifier.js -o build/parser.js build/grammar.pegjs",
+    "build": "npm run clean && npm run copy && npm run build:parser"
+  },
+  "author": "Ethan Resnick <ethan.resnick@gmail.com>",
+  "license": "ISC",
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "cpr": "^3.0.1",
+    "mocha": "^5.0.5",
+    "pegjs": "^0.10.0",
+    "rimraf": "^2.6.2"
+  },
+  "engines": {
+    "node": ">=6.x.x"
+  }
+}
