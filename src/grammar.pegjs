@@ -49,10 +49,8 @@ CommaSeparatedList "comma-separated list"
 EmptyList "empty list"
   =  "(" ")" { return []; }
 
-// Note: it's important here that Symbol be after
-// Boolean and Null, so that those have a chance to match.
 Atom "atomic value (i.e., a non-list value)"
-  = String / Boolean / Null / Number / Symbol
+  = String / Keyword / Number / Symbol
 
 // See https://github.com/ethanresnick/json-api/issues/160 for why backticks.
 // We decode string, as it's urlencoded to allow backticks inside of it.
@@ -63,15 +61,18 @@ String "string"
 
 // Symbols are identifiers that can be dereferenced to a literal value within
 // some evaluation context. They're used for field/operator/function names.
-// They can't start with a minus sign or a digit to disambiguate them from the
-// number grammar, and to avoid confusion w/ a sort field's direction indicator.
+// They can't start with a minus sign, period, or digit to disambiguate them
+// from the number grammar, and to avoid confusion w/ a sort field's direction
+// indicator. We also ensure they don't match keywords, because using a
+// `Keyword / Symbol` ordered choice isn't enough to prevent keywords getting
+// matched as Symbols in cases where we can't have keywords (like SortFields).
 Symbol "symbol (i.e., a field or operator name)"
-  = ![0-9\-] content:SymbolChar+ {
+  = ![0-9\-.] !Keyword content:SymbolChar+ {
       return new Identifier(decodeURIComponent(content.join('')));
     }
 
 Number "number"
-  = isNegative:"-"? [0-9]+ ("." [0-9]+)? {
+  = isNegative:"-"? (([0-9]+ ("." [0-9]+)?) / "." [0-9]+) {
       return parseFloat(text());
     }
 
@@ -92,6 +93,9 @@ Number "number"
 // the separate lexing step would've encountered a delimiter (which includes
 // !SymbolChar) and ended our "true"/"false"/"null"/"434" tokens at that
 // delimiter, so our atomFromToken could easily match on them.
+Keyword
+  = Boolean / Null
+
 Boolean "boolean"
   = ("false" / "true") !SymbolChar {
       return (text() === 'true') ? true : false;
