@@ -24,5 +24,6 @@
   },
   "engines": {
     "node": ">=6.x.x"
-  }
+  },
+  "files": ["index.d.ts", "index.js", "build/"]
 }
