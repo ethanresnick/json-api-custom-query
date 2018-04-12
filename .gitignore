@@ -4,3 +4,4 @@ coverage
 .DS_Store
 .nyc_output
 build
+src/parser.js

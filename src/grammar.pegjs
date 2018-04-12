@@ -68,7 +68,7 @@ String "string"
 // matched as Symbols in cases where we can't have keywords (like SortFields).
 Symbol "symbol (i.e., a field or operator name)"
   = ![0-9\-.] !Keyword content:SymbolChar+ {
-      return new Identifier(decodeURIComponent(content.join('')));
+      return { type: "identifier", value: decodeURIComponent(content.join('')) };
     }
 
 Number "number"

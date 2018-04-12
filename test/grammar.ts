@@ -1,10 +1,10 @@
 const { expect } = require("chai");
-const sut = require("../build/parser");
-const Identifier = require("../build/Identifier");
-const parseFilter = (string) => sut.parse(string, { startRule: "Filter" });
-const parseSort = (string) => sut.parse(string, { startRule: "Sort" });
+const sut = require("../src/parser");
+const parseFilter = (str: string) => sut.parse(str, { startRule: "Filter" });
+const parseSort = (str: string) => sut.parse(str, { startRule: "Sort" });
+const Identifier = (value: string) => ({ type: "identifier", value });
 
-describe('Parsing', () => {
+describe('Parser from underlying grammar', () => {
   describe("Filter", () => {
     it("should reject empty lists at the top level", () => {
       expect(() => parseFilter("()")).to.throw(/Expected comma-separated list/);
@@ -13,8 +13,8 @@ describe('Parsing', () => {
 
     it("should support only lists without any separators at top-level", () => {
       expect(parseFilter("(ab,c)(3,e)")).to.deep.equal([
-        [new Identifier("ab"), new Identifier("c")],
-        [3, new Identifier("e")]
+        [Identifier("ab"), Identifier("c")],
+        [3, Identifier("e")]
       ]);
 
       expect(() => parseFilter("(ab,c),(3,e)")).to.throw(/but "," found/);
@@ -59,9 +59,9 @@ describe('Parsing', () => {
 
     it('should support list expressions, with directions', () => {
       const expression = [
-        new Identifier("x"),
-        new Identifier("y"),
-        new Identifier("z")
+        Identifier("x"),
+        Identifier("y"),
+        Identifier("z")
       ];
 
       const ascResult = { direction: "ASC", expression };
@@ -89,7 +89,7 @@ describe('Parsing', () => {
     it("should properly differentiate symbols from null/bool literals", () => {
       expect(sut.parse("(true,truedat)", { startRule: "Filter" }))
         .to.deep.equal([
-          [true, new Identifier("truedat")]
+          [true, Identifier("truedat")]
         ]);
     });
 
@@ -103,11 +103,11 @@ describe('Parsing', () => {
     })
 
     it("should allow periods, minus signs, and numbers in symbol names", () => {
-      expect(parseFilter("(a-test)")).to.deep.equal([[new Identifier("a-test")]]);
-      expect(parseFilter("(a-22d)")).to.deep.equal([[new Identifier("a-22d")]]);
-      expect(parseFilter("(a1d)")).to.deep.equal([[new Identifier("a1d")]]);
-      expect(parseFilter("(a.test)")).to.deep.equal([[new Identifier("a.test")]]);
-      expect(parseFilter("(a.22d)")).to.deep.equal([[new Identifier("a.22d")]]);
+      expect(parseFilter("(a-test)")).to.deep.equal([[Identifier("a-test")]]);
+      expect(parseFilter("(a-22d)")).to.deep.equal([[Identifier("a-22d")]]);
+      expect(parseFilter("(a1d)")).to.deep.equal([[Identifier("a1d")]]);
+      expect(parseFilter("(a.test)")).to.deep.equal([[Identifier("a.test")]]);
+      expect(parseFilter("(a.22d)")).to.deep.equal([[Identifier("a.22d")]]);
     });
   });
 

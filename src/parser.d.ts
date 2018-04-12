@@ -1,4 +1,5 @@
-declare namespace QueryParser {
+declare namespace Parser {
+  export type Identifier = { type: "identifier", value: string };
   export type Atom = number | string | boolean | null | Identifier;
   export type Value = Atom | List;
 
@@ -16,19 +17,8 @@ declare namespace QueryParser {
     direction: "ASC" | "DESC"
   };
 
-  export type SortParseResult = SortField[];
-  export type FilterParseResult = List[];
-
-  export interface Parser {
-    parse(input: string, opts: { startRule: "Sort" }): SortParseResult
-    parse(input: string, opts: { startRule: "Filter" }): FilterParseResult
-  }
-
-  export const parser: Parser;
-  export class Identifier {
-    public value: string;
-    constructor(value: string);
-  }
+  export function parse(input: string, opts: { startRule: "Sort" }): SortField[]
+  export function parse(input: string, opts: { startRule: "Filter" }): List[]
 }
 
-export = QueryParser;
+export = Parser;
