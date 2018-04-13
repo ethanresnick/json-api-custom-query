@@ -1,39 +1,45 @@
 const { expect } = require("chai");
-const sut = require("../src/parser");
+import sut = require('../src/parser');
+import { Identifier, RawFieldExpression } from './helpers';
+
 const parseFilter = (str: string) => sut.parse(str, { startRule: "Filter" });
 const parseSort = (str: string) => sut.parse(str, { startRule: "Sort" });
-const Identifier = (value: string) => ({ type: "identifier", value });
 
 describe('Parser from underlying grammar', () => {
   describe("Filter", () => {
-    it("should reject empty lists at the top level", () => {
-      expect(() => parseFilter("()")).to.throw(/Expected comma-separated list/);
-      expect(() => parseFilter("(a,b,c)()")).to.throw(/Expected comma-separated list/);
+    it("should reject empty field expressions", () => {
+      expect(() => parseFilter("()")).to.throw(/Expected.+field expression/);
+      expect(() => parseFilter("(a,b,c)()")).to.throw(/Expected.+field expression/);
+      expect(() => parseFilter("(a,b,())")).to.throw(/Expected.+field expression/);
     });
 
-    it("should support only lists without any separators at top-level", () => {
+    it("should support only field expressions without any separators at top-level", () => {
       expect(parseFilter("(ab,c)(3,e)")).to.deep.equal([
-        [Identifier("ab"), Identifier("c")],
-        [3, Identifier("e")]
+        RawFieldExpression([Identifier("ab"), Identifier("c")]),
+        RawFieldExpression([3, Identifier("e")])
       ]);
 
       expect(() => parseFilter("(ab,c),(3,e)")).to.throw(/but "," found/);
       expect(() => parseFilter("(ab,c) (3,e)")).to.throw(/but " " found/);
     });
 
-    it("should not allow non-list items at top-level", () => {
-      expect(() => parseFilter("44")).to.throw(/comma-separated list but "4"/);
-      expect(() => parseFilter("-4")).to.throw(/comma-separated list but "-"/);
-      expect(() => parseFilter("ab")).to.throw(/comma-separated list but "a"/);
-      expect(() => parseFilter("true")).to.throw(/comma-separated list but "t"/);
-      expect(() => parseFilter("null")).to.throw(/comma-separated list but "n"/);
+    it("should not allow non-field-expression items at top-level", () => {
+      expect(() => parseFilter("44")).to.throw(/field expression but "4"/);
+      expect(() => parseFilter("-4")).to.throw(/field expression but "-"/);
+      expect(() => parseFilter("ab")).to.throw(/field expression but "a"/);
+      expect(() => parseFilter("true")).to.throw(/field expression but "t"/);
+      expect(() => parseFilter("null")).to.throw(/field expression but "n"/);
+      expect(() => parseFilter("null")).to.throw(/field expression but "n"/);
+      expect(() => parseFilter("[test]")).to.throw(/field expression but \"\[\"/);
     })
   });
 
   describe("Sort", () => {
-    it("should reject empty lists at the top level", () => {
+    it("should reject empty field expressions", () => {
       expect(() => parseSort("fieldA,()")).to.throw();
+      expect(() => parseSort("fieldA,(a,())")).to.throw();
       expect(() => parseSort("fieldA,(ax,x)")).to.not.throw();
+      expect(() => parseSort("fieldA,(ax,[])")).to.not.throw();
     });
 
     it("should reject number literals as sort fields", () => {
@@ -55,14 +61,22 @@ describe('Parser from underlying grammar', () => {
       expect(() => parseSort("false")).to.throw(/sort fields list but "f" found/);
       expect(parseSort("nullified")).to.deep.equal([{ field: "nullified", direction: "ASC" }]);
       expect(parseSort("truthy")).to.deep.equal([{ field: "truthy", direction: "ASC" }]);
-    })
+    });
 
-    it('should support list expressions, with directions', () => {
-      const expression = [
-        Identifier("x"),
-        Identifier("y"),
-        Identifier("z")
-      ];
+    it("should reject list literals as sort fields", () => {
+      expect(() => parseSort("john,[test]")).to.throw()
+      expect(() => parseSort("[test],john")).to.throw(/sort fields list but \"\[\" found/)
+    });
+
+    it('should support field expressions, with directions', () => {
+      const expression = {
+        type: "RawFieldExpression",
+        items: [
+          Identifier("x"),
+          Identifier("y"),
+          Identifier("z")
+        ]
+      };
 
       const ascResult = { direction: "ASC", expression };
       const descResult = { direction: "DESC", expression };
@@ -74,7 +88,7 @@ describe('Parser from underlying grammar', () => {
     });
   });
 
-  describe("Comma-separated lists", () => {
+  describe("Field expression lists", () => {
     it("should reject trailing commas", () => {
       expect(() => parseSort("(a,)")).to.throw();
       expect(() => parseSort("(a,,)")).to.throw();
@@ -88,9 +102,7 @@ describe('Parser from underlying grammar', () => {
   describe("Symbol", () => {
     it("should properly differentiate symbols from null/bool literals", () => {
       expect(sut.parse("(true,truedat)", { startRule: "Filter" }))
-        .to.deep.equal([
-          [true, Identifier("truedat")]
-        ]);
+        .to.deep.equal([RawFieldExpression([true, Identifier("truedat")])]);
     });
 
     // Symbol literals should be totally unambiguous with number literals.
@@ -103,25 +115,53 @@ describe('Parser from underlying grammar', () => {
     })
 
     it("should allow periods, minus signs, and numbers in symbol names", () => {
-      expect(parseFilter("(a-test)")).to.deep.equal([[Identifier("a-test")]]);
-      expect(parseFilter("(a-22d)")).to.deep.equal([[Identifier("a-22d")]]);
-      expect(parseFilter("(a1d)")).to.deep.equal([[Identifier("a1d")]]);
-      expect(parseFilter("(a.test)")).to.deep.equal([[Identifier("a.test")]]);
-      expect(parseFilter("(a.22d)")).to.deep.equal([[Identifier("a.22d")]]);
+      expect(parseFilter("(a-test)")).to.deep.equal([
+        RawFieldExpression([Identifier("a-test")])
+      ]);
+      expect(parseFilter("(a-22d)")).to.deep.equal([
+        RawFieldExpression([Identifier("a-22d")])
+      ]);
+      expect(parseFilter("(a1d)")).to.deep.equal([
+        RawFieldExpression([Identifier("a1d")])
+      ]);
+      expect(parseFilter("(a.test)")).to.deep.equal([
+        RawFieldExpression([Identifier("a.test")])
+      ]);
+      expect(parseFilter("(a.22d)")).to.deep.equal([
+        RawFieldExpression([Identifier("a.22d")])
+      ]);
+    });
+
+    it("should not allow [] in symbol names", () => {
+      expect(() => parseFilter("(ast[rst)")).to.throw(/expected field expression/i)
+      expect(() => parseFilter("(astrs]t)")).to.throw(/expected field expression/i)
+      expect(() => parseFilter("(ast[rst])")).to.throw(/expected field expression/i)
     });
   });
 
   describe("Number", () => {
     it("should support integers and integer-prefixed decimals", () => {
-      expect(parseFilter("(2)")).to.deep.equal([[2]]);
-      expect(parseFilter("(-2)")).to.deep.equal([[-2]]);
-      expect(parseFilter("(2.1)")).to.deep.equal([[2.1]]);
-      expect(parseFilter("(-2.1)")).to.deep.equal([[-2.1]]);
+      expect(parseFilter("(2)")).to.deep.equal([
+        RawFieldExpression([2])
+      ]);
+      expect(parseFilter("(-2)")).to.deep.equal([
+        RawFieldExpression([-2])
+      ]);
+      expect(parseFilter("(2.1)")).to.deep.equal([
+        RawFieldExpression([2.1])
+      ]);
+      expect(parseFilter("(-2.1)")).to.deep.equal([
+        RawFieldExpression([-2.1])
+      ]);
     });
 
     it("should allow literals with no integer part", () => {
-      expect(parseFilter("(.99)")).to.deep.equal([[.99]]);
-      expect(parseFilter("(-.99)")).to.deep.equal([[-0.99]]);
+      expect(parseFilter("(.99)")).to.deep.equal([
+        RawFieldExpression([.99])
+      ]);
+      expect(parseFilter("(-.99)")).to.deep.equal([
+        RawFieldExpression([-0.99])
+      ]);
     });
 
     it("should reject trailing decimal point", () => {
@@ -137,17 +177,25 @@ describe('Parser from underlying grammar', () => {
     })
 
     it("should allow 0-prefixed integer parts", () => {
-      expect(parseFilter("(0.99)")).to.deep.equal([[.99]]);
+      expect(parseFilter("(0.99)")).to.deep.equal([
+        RawFieldExpression([.99])
+      ]);
 
       // JS rejects these, but why??
-      expect(parseFilter("(011.99)")).to.deep.equal([[11.99]]);
-      expect(parseFilter("(001.99)")).to.deep.equal([[1.99]]);
+      expect(parseFilter("(011.99)")).to.deep.equal([
+        RawFieldExpression([11.99])
+      ]);
+      expect(parseFilter("(001.99)")).to.deep.equal([
+        RawFieldExpression([1.99])
+      ]);
     })
   });
 
   describe("Boolean, number, null", () => {
     it("should parse them into their js equivalents", () => {
-      expect(parseFilter("(true,false,null)")).to.deep.equal([[true, false, null]]);
+      expect(parseFilter("(true,false,null)")).to.deep.equal([
+        RawFieldExpression([true, false, null])
+      ]);
     });
   });
 });

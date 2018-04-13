@@ -3,7 +3,7 @@
 // to generate a parser for the corresponding parameter.
 
 Filter
-  = CommaSeparatedList+
+  = FieldExpression+
 
 Sort "sort fields list"
   = head:SortField tail:("," SortField)* {
@@ -11,43 +11,38 @@ Sort "sort fields list"
   }
 
 SortField "sort field"
-  = desc:"-"? fieldOrExp:(CommaSeparatedList / Symbol) {
+  = desc:"-"? fieldOrExp:(FieldExpression / Symbol) {
     const direction = desc ? 'DESC' : 'ASC';
 
     return {
       direction,
-      ...(Array.isArray(fieldOrExp)
+      ...(fieldOrExp && fieldOrExp.type === 'RawFieldExpression'
         ? { expression: fieldOrExp }
         : { field: fieldOrExp.value })
     };
   }
 
-CommaSeparatedValue "atomic value or comma-separated list"
-  = CommaSeparatedList / EmptyList / Atom
+Value "field expression, atomic value, or comma-separated list"
+  = FieldExpression / List / EmptyList / Atom
 
-
-CommaSeparatedList "comma-separated list"
-  = "(" head:CommaSeparatedValue tail:("," CommaSeparatedValue)* ")" {
-    const res = [head, ...(tail ? tail.map(it => it[1]) : [])];
-    res.separator = 'COMMA';
-    return res;
+FieldExpression "field expression"
+  = "(" head:Value tail:("," Value)* ")" {
+    return {
+      type: "RawFieldExpression",
+      items: [head, ...(tail ? tail.map(it => it[1]) : [])]
+    };
   }
 
-// Old sort field grammar elements.
-// See https://github.com/json-api/json-api/issues/1266
-//
-// ColonSeparatedValue "atomic value or colon-separated list"
-//  = ColonSeparatedList / EmptyList / Atom
-//
-// ColonSeparatedList "colon-separated list"
-//  = "(" head:ColonSeparatedValue tail:(":" ColonSeparatedValue)* ")" {
-//    const res = [head, ...(tail ? tail.map(it => it[1]) : [])];
-//    res.separator = 'COLON';
-//    return res;
-//  }
+// Note: using square brackets unencoded in URLs is of questionable legality,
+// but it doesn't seem to be an issue in practice.
+// See https://stackoverflow.com/questions/11490326/is-array-syntax-using-square-brackets-in-url-query-strings-valid/49806195#49806195
+List "comma-separated list"
+  = "[" head:Value tail:("," Value)* "]" {
+    return [head, ...(tail ? tail.map(it => it[1]) : [])];
+  }
 
 EmptyList "empty list"
-  =  "(" ")" { return []; }
+  =  "[" "]" { return []; }
 
 Atom "atomic value (i.e., a non-list value)"
   = String / Keyword / Number / Symbol
@@ -68,7 +63,7 @@ String "string"
 // matched as Symbols in cases where we can't have keywords (like SortFields).
 Symbol "symbol (i.e., a field or operator name)"
   = ![0-9\-.] !Keyword content:SymbolChar+ {
-      return { type: "identifier", value: decodeURIComponent(content.join('')) };
+      return { type: "Identifier", value: decodeURIComponent(content.join('')) };
     }
 
 Number "number"

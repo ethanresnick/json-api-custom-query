@@ -1,27 +1,54 @@
 const { expect } = require("chai");
+import { isId } from '../src/helpers';
+import { Identifier, FieldExpression } from './helpers';
 import sut from '../src/filter-param-parser';
 
+const noValidationFinalizeArgs = function(a: any, b: any, args: any[]) {
+  return args;
+}
+
 const eqOperator = {
-  "eq": { isBinary: true }
+  "eq": { isBinary: true, finalizeArgs: noValidationFinalizeArgs }
 };
 
 const andOrOperators = {
-  "and": { isBinary: false },
-  "or": { isBinary: false }
+  "and": { isBinary: false, finalizeArgs: noValidationFinalizeArgs },
+  "or": { isBinary: false, finalizeArgs: noValidationFinalizeArgs }
 };
 
 const gteOperator = {
-  "gte": { isBinary: true }
+  "gte": { isBinary: true, finalizeArgs: noValidationFinalizeArgs }
 };
 
 const nowOperator = {
-  "now": { isBinary: false }
+  "now": { isBinary: false, finalizeArgs: noValidationFinalizeArgs }
 }
+
+const andOrProperOperators = {
+  "and-list": {
+    isBinary: false,
+    finalizeArgs(a: any, b: any, c: any[]) {
+      if(!c.every(it => it && it.type === "FieldExpression")) {
+        throw new Error("Arguments must be field expressions.");
+      }
+      return c;
+    }
+  },
+  "or-list": {
+    isBinary: false,
+    finalizeArgs(a: any, b: any, c: any[]) {
+      if(!c.every(it => it && it.type === "FieldExpression")) {
+        throw new Error("Arguments must be field expressions.");
+      }
+      return c;
+    }
+  }
+};
 
 const nowProperOperator = {
   "now": {
     isBinary: false,
-    finalizeArgs(a: any, b: any, c: any, args: any[]) {
+    finalizeArgs(a: any, b: any, args: any[]) {
       if(args.length) {
         throw new Error("`now` operator cannot take any arguments.");
       }
@@ -30,11 +57,32 @@ const nowProperOperator = {
   }
 };
 
+const withFieldOperators = {
+  "eq": {
+    isBinary: true,
+    finalizeArgs(a: any, b: any, args: any[]) {
+      if(!isId(args[0])) {
+        throw new Error("field reference required as first argument.");
+      }
+      return args;
+    }
+  },
+  "lte": {
+    isBinary: true,
+    finalizeArgs(a: any, b: any, args: any[]) {
+      if(!isId(args[0])) {
+        throw new Error("field reference required as first argument.");
+      }
+      return args;
+    }
+  }
+}
+
 const gteExtendedOperator = {
   "gte": {
     isBinary: false,
     // Defining a custom finalizeArgs shoudl override the built-in one.
-    finalizeArgs(a: any, b: any, c: any, args: any[]) {
+    finalizeArgs(a: any, b: any, args: any[]) {
       return ["custom args"];
     }
   }
@@ -43,7 +91,7 @@ const gteExtendedOperator = {
 describe("Filter param parsing", () => {
   describe("Empty lists", () => {
     it("Should reject them as invalid filter constraints", () => {
-      expect(() => sut(eqOperator, "()")).to.throw(/Expected comma-separated list/);
+      expect(() => sut(eqOperator, "()")).to.throw(/Expected field expression/);
     });
   });
 
@@ -58,7 +106,7 @@ describe("Filter param parsing", () => {
 
     it("should treat as a no-arg expression if the arg is known + n-ary", () => {
       expect(sut(nowOperator, "(now)")).to.deep.equal([
-        { operator: "now", args: [] }
+        FieldExpression("now", [])
       ]);
     })
   });
@@ -66,13 +114,13 @@ describe("Filter param parsing", () => {
   describe("Two item lists", () => {
     it("should recognize valid n-ary operators", () => {
       expect(sut(nowOperator, "(now,1)")).to.deep.equal([
-        { operator: "now", args: [1] }
+        FieldExpression("now", [1])
       ]);
     });
 
     it("should infer `eq` if no known n-ary operator is present and eq is known", () => {
       expect(sut(eqOperator, "(fieldName,1)")).to.deep.equal([
-        { operator: "eq", args: [{ type: "identifier", value: "fieldName" }, 1] }
+        FieldExpression("eq", [Identifier("fieldName"), 1])
       ]);
     });
 
@@ -91,11 +139,11 @@ describe("Filter param parsing", () => {
   describe("three item lists", () => {
     it("should appropriately recognize infixed binary operators in valid lists", () => {
       expect(sut(eqOperator, "(fieldName,eq,1)")).to.deep.equal([
-        { operator: "eq", args: [{ type: "identifier", value: "fieldName" }, 1] }
+        FieldExpression("eq", [{ type: "Identifier", value: "fieldName" }, 1])
       ]);
 
       expect(sut(gteOperator, "(fieldName,gte,1)")).to.deep.equal([
-        { operator: "gte", args: [{ type: "identifier", value: "fieldName" }, 1] }
+        FieldExpression("gte", [{ type: "Identifier", value: "fieldName" }, 1])
       ]);
     });
 
@@ -103,33 +151,25 @@ describe("Filter param parsing", () => {
       expect(() => sut(gteOperator, "(gte,fieldName,1)")).to.throw();
 
       expect(sut(gteOperator, "(gte,gte,1)")).to.deep.equal([
-        { operator: "gte", args: [{ type: "identifier", value: "gte" }, 1] }
+        FieldExpression("gte", [{ type: "Identifier", value: "gte" }, 1])
       ]);
     });
 
     it("should recognize leading n-ary operators", () => {
-      expect(sut(nowOperator, "(now,fieldName,())")).to.deep.equal([{
-        operator: "now",
-        args: [
-          { type: "identifier", value: "fieldName" },
-          []
-        ]
-      }]);
+      expect(sut(nowOperator, "(now,fieldName,[])")).to.deep.equal([
+        FieldExpression("now", [Identifier("fieldName"), []])
+      ]);
     });
 
     it("should prefer a known infixed binary op over a known leadingnary op", () => {
-      expect(sut({ ...nowOperator, ...gteOperator }, "(now,gte,())"))
-        .to.deep.equal([{
-          operator: "gte",
-            args: [
-            { type: "identifier", value: "now" },
-            []
-          ]
-        }]);
+      expect(sut({ ...nowOperator, ...gteOperator }, "(now,gte,[2])"))
+        .to.deep.equal([
+          FieldExpression("gte", [Identifier("now"), [2]])
+        ]);
     })
 
     it("should error if first arg is not a known operator", () => {
-      expect(() => sut(eqOperator, "(now,fieldName,())")).to.throw();
+      expect(() => sut(eqOperator, "(now,fieldName,[])")).to.throw();
     });
   });
 
@@ -144,69 +184,72 @@ describe("Filter param parsing", () => {
     });
 
     it("should wrap up all args into an array", () => {
-      expect(sut(nowOperator, "(now,233,fieldName,(true))")).to.deep.equal([{
-        operator: "now",
-        args: [233, { type: "identifier", value: "fieldName"}, [true]]
-      }]);
+      expect(sut(nowOperator, "(now,233,fieldName,(now),[true])")).to.deep.equal([
+        FieldExpression(
+          "now",
+          [233, Identifier("fieldName"), FieldExpression("now",[]), [true]]
+        )
+      ]);
     });
   });
 
-  describe("custom finalizeArgs", () => {
-    it("should use the user's finalizeArgs instead of the built-in one", () => {
+  describe("finalizeArgs", () => {
+    it("should call it recursively", () => {
       expect(sut(gteExtendedOperator, "(gte,1000,fieldName,230)")).to.deep.equal([
-        { operator: "gte", args: ["custom args"]}
+        FieldExpression("gte", ["custom args"])
+      ]);
+
+      expect(
+          sut({
+            ...andOrOperators,
+            ...gteExtendedOperator
+          }, "(and,(gte,1000,fieldName,230))"
+        )
+      ).to.deep.equal([
+        FieldExpression("and", [FieldExpression("gte", ["custom args"])])
       ]);
 
       expect(() => sut(nowProperOperator, "(now,1)"))
         .to.throw(/`now` operator cannot take any arguments/);
 
       expect(sut(nowProperOperator, "(now)")).to.deep.equal([
-        { operator: "now", args: []}
+        FieldExpression("now", [])
       ]);
-    })
-  });
 
-  describe("binary operators", () => {
-    it("should require the first item be a field reference", () => {
-      const missingFieldError = /expects field reference/;
-      expect(() => sut(eqOperator, "(2,1)")).to.throw(missingFieldError);
-      expect(() => sut(eqOperator, "(2,eq,1)")).to.throw(missingFieldError);
-      expect(() => sut(gteOperator, "(2,gte,1)")).to.throw(missingFieldError);
-      expect(() => sut(gteOperator, "((a,b,c),gte,1)")).to.throw(missingFieldError);
-      expect(() => sut(gteOperator, "(null,gte,1)")).to.throw(missingFieldError);
-      expect(() => sut(gteOperator, "((),gte,1)")).to.throw(missingFieldError);
+      const missingFieldError = /field reference required/;
+      expect(() => sut(withFieldOperators, "(2,1)")).to.throw(missingFieldError);
+      expect(() => sut(withFieldOperators, "(2,eq,1)")).to.throw(missingFieldError);
+      expect(() => sut(withFieldOperators, "(2,lte,1)")).to.throw(missingFieldError);
+      expect(() => sut(withFieldOperators, "((a,eq,c),lte,1)")).to.throw(missingFieldError);
+      expect(() => sut(withFieldOperators, "(null,lte,1)")).to.throw(missingFieldError);
+      expect(() => sut(withFieldOperators, "([a,b],lte,1)")).to.throw(missingFieldError);
+
+      expect(() => sut(withFieldOperators, "(test,1)")).to.not.throw();
+      expect(() => sut(withFieldOperators, "(test,eq,1)")).to.not.throw();
+      expect(() => sut(withFieldOperators, "(test,lte,1)")).to.not.throw();
     });
   });
 
-  describe("and/or operators", () => {
-    it("should verify (recursively) that args are valid field expressions themselves", () => {
+  describe("operators with raw field expressions as args", () => {
+    it("should (recursively) process the field expressions, calling finalizeArgs", () => {
       const sutWithOps = sut.bind(null, {
         ...eqOperator,
         ...nowProperOperator,
         ...gteOperator,
-        ...andOrOperators
+        ...andOrOperators,
+        ...andOrProperOperators
       });
 
       const invalidsToErrors = {
-        // () is a field expr missing any operator.
-        "(and,())": /must have a valid operator symbol/,
-
         //test is unknown operator
         "(or,(field,gte,2),(test,fieldName,3))": /must have a valid operator symbol/,
 
         // same as above, but nested
-        "(and,(or,()))": /must have a valid operator symbol/,
+        "(and,(or,(test,x,1)))": /must have a valid operator symbol/,
 
-        // true and test below aren't lists
-        "(and,true)": /expression must be a list/i,
-        "(or,(field,eq,2),(date,gte,(now)),(and,test))": /expression must be a list/i,
-
-        // In the case below, we try to parse first argument to the and
-        // (i.e., the nested list) as a field expr, as always. Because it has
-        // two items, an eq operator is inferred. So this is asserting that
-        // `((field,eq,2),eq,(date,gte,now))`. But the eq operator requires the
-        // first argument to be a field reference not a list, hence the error.
-        "(and,((field,eq,2),(date,gte,(now))))": /"eq" operator expects field reference/
+        // true and test below aren't field expressions
+        "(and-list,true)": /arguments must be field expressions/i,
+        "(or-list,(field,eq,2),(date,gte,(now)),(and-list,test))": /arguments must be field expressions/i,
       };
 
       Object.keys(invalidsToErrors).forEach(k => {
@@ -214,43 +257,37 @@ describe("Filter param parsing", () => {
       })
 
       expect(sutWithOps("(and,(field,eq,2),(date,gte,(now)),(test,4))"))
-        .to.deep.equal([{
-          operator: "and",
-          args: [{
-            operator: "eq",
-            args: [{type: "identifier", value: "field"}, 2]
-          }, {
-            operator: "gte",
-            args: [
-              {type: "identifier", value: "date"},
-              // Note: this is not automatically turned into a
-              // { operator: "now", args: [] }, because the system can't
-              // know whether you mean to evaluate some "now" function or
-              // create a one item list with the value now in it.
-              // If adapters want to disallow this, they can specify
-              // their own finalizeArgs functions.
-              [{ type: "identifier", value: "now" }]
-            ]
-          }, {
-            operator: "eq",
-            args: [{type: "identifier", value: "test"}, 4]
-          }]
-        }]);
+        .to.deep.equal([
+          FieldExpression("and", [
+            FieldExpression("eq", [{type: "Identifier", value: "field"}, 2]),
+            FieldExpression("gte", [Identifier("date"), FieldExpression("now", [])]),
+            FieldExpression("eq", [{type: "Identifier", value: "test"}, 4])
+          ])
+        ]);
 
-      expect(sutWithOps("(and,(or,(and,(it,3))))"))
-        .to.deep.equal([{
-          operator: "and",
-          args: [{
-            operator: "or",
-            args: [{
-              operator: "and",
-              args: [{
-                operator: "eq",
-                args: [{ type: "identifier", value: "it"}, 3]
-              }]
-            }]
-          }]
-        }]);
+      // Normal `and` operator doesn't validate it's args as field expressions.
+      expect(sutWithOps("(and,true)")).to.deep.equal([
+        FieldExpression("and", [true])
+      ]);
+
+      expect(sut(withFieldOperators, "(test,lte,(a,eq,c))")).to.deep.equal([
+        FieldExpression("lte", [
+          Identifier("test"),
+          FieldExpression("eq", [Identifier("a"), Identifier("c")])
+        ])
+      ]);
+
+      expect(sutWithOps("(and,(or,(and,(it,3)),(test,gte,null)))"))
+        .to.deep.equal([
+          FieldExpression("and", [
+            FieldExpression("or", [
+              FieldExpression("and", [
+                FieldExpression("eq", [Identifier("it"), 3])
+              ]),
+              FieldExpression("gte", [Identifier("test"), null])
+            ])
+          ])
+        ]);
     });
   });
 });

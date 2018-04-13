@@ -1,38 +1,20 @@
 import R = require("ramda");
 
-export type Identifier = { type: "identifier", value: string };
-export const isId = (it: any): it is Identifier => it && it.type === "identifier";
-
-export type FinalizeArgs = (
-  operators: OperatorsConfig,
-  listToFieldExp: (parseResult: any) => FieldExpression,
-  operator: string,
-  args: any[]
-) => any;
+export type Identifier = { type: "Identifier", value: string };
+export const isId = (it: any): it is Identifier => it && it.type === "Identifier";
 
 export type OperatorsConfig = {
   [operatorName: string]: {
     isBinary: boolean;
-    finalizeArgs?: FinalizeArgs;
+    finalizeArgs: (operators: OperatorsConfig, operator: string, args: any[]) => any[];
   } | undefined
 }
 
-export type FieldExpression = ({
-  operator: "or" | "and",
-  args: FieldExpression[]
-} | {
-  operator: "eq" | 'neq' | 'ne'; // ne and neq are synonyms
-  args: [Identifier, any]
-} | {
-  operator: "in" | "nin";
-  args: [Identifier, string[] | number[]]
-} | {
-  operator: 'lt' | 'gt' | 'lte' | 'gte';
-  args: [Identifier, string | number];
-} | {
+export type FieldExpression = {
+  type: "FieldExpression"
   operator: string;
   args: any[];
-});
+};
 
 /**
  * @returns {boolean} Is this node an identifier representing a known operator?
@@ -61,23 +43,29 @@ export const isNaryOperator =
   });
 
 /**
- * Attempt to convert what's supposed to be a List node (but that we recognize
- * at runtime might be anything) to a FieldExperssion, given a set of supported
- * operators. This doesn't transform or validate the operator's args; it just
- * extracts them.
+ * Attempt to convert what's supposed to be a RawFieldExpression node (but that
+ * we recognize at runtime might be anything) to a FieldExperssion, given a set
+ * of supported operators. This doesn't transform or validate the operator's
+ * args; it just extracts them. Because binary and n-ary operators have different
+ * rules (i.e., binary ops are infixed), the meaning of a RawFieldExpression is
+ * fundamentally ambiguous until we run it through this function.
  */
-export const listToFieldExpression =
-  R.curry((operators: OperatorsConfig, list: any): FieldExpression => {
+export const finalizeFieldExpression =
+  R.curry((operators: OperatorsConfig, it: any): FieldExpression => {
     // We may won't have a list at runtime when this is called to
     // validate the args to the and/or operators, among other cases.
-    if(!Array.isArray(list)) {
-      throw new SyntaxError("Expression must be a list.");
+    if(!(it && it.type === "RawFieldExpression")) {
+      throw new SyntaxError("Expected a parenthesized list.");
     }
+
+    // The elements of the call.
+    const list = it.items;
 
     // For binary operators, the operator is the second item in the list
     // (i.e., it's infixed); otherwise, it must be the first item.
     if(list.length === 3 && isBinaryOperator(operators, list[1])) {
       return {
+        type: "FieldExpression",
         operator: (list[1] as Identifier).value,
         args: [list[0], list[2]]
       };
@@ -87,6 +75,7 @@ export const listToFieldExpression =
     // and be non-binary. isNaryOperator checks for that.
     else if(isNaryOperator(operators, list[0])) {
       return {
+        type: "FieldExpression",
         operator: (list[0] as Identifier).value,
         args: list.slice(1)
       };
@@ -96,6 +85,7 @@ export const listToFieldExpression =
     // assuming the eq operator is supported.
     else if(list.length === 2 && operators["eq"]) {
       return {
+        type: "FieldExpression",
         operator: "eq",
         args: list
       };
@@ -108,40 +98,3 @@ export const listToFieldExpression =
       "used explicitly, the expression must have exactly three items."
     );
   });
-
-/**
- * A function called to finalize the arguments used in a given field expression.
- * This function has two points: 1) to transform the arguments from raw parse
- * results into a more amenable form, if appropriate; and 2) to throw if the
- * arguments are invalid for the operator in question.
- */
-export function finalizeArgs(
-  operators: OperatorsConfig,
-  listToFieldExp: (parseResult: any) => FieldExpression,
-  operator: string,
-  args: any[]
-): any[] {
-  // For "and" and "or", the args must all themselves be field expressions.
-  if(operator === "and" || operator === "or") {
-    if(args.length === 0) {
-      throw new Error(`The "${operator}" operator requires at least one argument.`);
-    }
-    return args.map(it => {
-      const exp = listToFieldExp(it);
-      return {
-        ...exp,
-        args: finalizeArgs(operators, listToFieldExp, exp.operator, exp.args)
-      };
-    });
-  }
-
-  // For built-in binary operators, there must be an identifier
-  // as the first argument (to reference a field)
-  else if(operators[operator]!.isBinary && !isId(args[0])) {
-    throw new SyntaxError(
-      `"${operator}" operator expects field reference as first argument.`
-    );
-  }
-
-  return args;
-};

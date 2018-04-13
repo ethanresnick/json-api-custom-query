@@ -1,12 +1,5 @@
-import R = require("ramda");
 import parser = require("./parser");
-
-import {
-  OperatorsConfig,
-  FieldExpression,
-  listToFieldExpression,
-  finalizeArgs
-} from './helpers';
+import { OperatorsConfig, FieldExpression, finalizeFieldExpression } from './helpers';
 
 /**
  * Takes a set of operator descriptions for operators that are all legal in
@@ -26,22 +19,30 @@ export default function parse(
   filterVal: string
 ): (FieldExpression)[] {
   const constraintLists = parser.parse(filterVal, { startRule: "Filter" });
-  const toFieldExpression = listToFieldExpression(filterOperators);
+  const toFieldExpression = finalizeFieldExpression(filterOperators);
 
-  // Transform the args of an expression by calling the user's finalizeArgs,
-  // if present, or else calling our built-in finalizeArgs.
-  const finalizeExp = (exp: FieldExpression) => {
-    const operatorConfig = filterOperators[exp.operator]!;
-    const finalizeArgsFn = (operatorConfig && operatorConfig.finalizeArgs)
-      ? operatorConfig.finalizeArgs
-      : finalizeArgs;
+  // Process each filter expression.
+  return constraintLists.map(function toFinalExp(rawExp): FieldExpression {
+    const exp = toFieldExpression(rawExp);
+
+    // If the arguments in this expression contain other unprocessed
+    // field expressions, recursively finalize them, so we're not leaking
+    // unusable, proprietary-format RawFieldExpressions back to the consumer.
+    const finalArgs = filterOperators[exp.operator]!.finalizeArgs(
+      filterOperators,
+      exp.operator,
+      exp.args.map((arg: any) => {
+        if(arg && arg.type === 'RawFieldExpression') {
+          return toFinalExp(arg);
+        }
+
+        return arg;
+      })
+    );
 
     return {
       ...exp,
-      args: finalizeArgsFn(filterOperators, toFieldExpression, exp.operator, exp.args)
-    };
-  }
-
-  // Process each filter expression.
-  return constraintLists.map(R.pipe(toFieldExpression, finalizeExp));
+      args: finalArgs
+    }
+  });
 }
