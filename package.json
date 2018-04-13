@@ -11,7 +11,7 @@
     "build": "npm run clean && npm run build:parser && npm run build:ts",
     "test": "npm run build:parser && npm run test:built",
     "test:built": "NODE_ENV=testing mocha --compilers ts:ts-node/register --recursive test/ --full-trace --check-leaks",
-    "prepare": "npm run build"
+    "prepare": "npm run build && cpr src/parser.js build/src/parser.js && cpr src/parser.d.ts build/src/parser.d.ts"
   },
   "author": "Ethan Resnick <ethan.resnick@gmail.com>",
   "license": "ISC",
