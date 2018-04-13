@@ -1,6 +1,6 @@
 {
   "name": "@json-api/query-parser",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "A query parser for the ?filter and ?sort param syntax used by @json-api/server",
   "main": "build/src/index.js",
   "typings": "build/src/index.d.ts",
