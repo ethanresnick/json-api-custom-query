@@ -47,10 +47,11 @@ EmptyList "empty list"
 Atom "atomic value (i.e., a non-list value)"
   = String / Keyword / Number / Symbol
 
-// See https://github.com/ethanresnick/json-api/issues/160 for why backticks.
-// We decode string, as it's urlencoded to allow backticks inside of it.
+// See https://github.com/ethanresnick/json-api/issues/160 for why backticks
+// and single quotes are allowed as delimiters. We decode the content because,
+// it's urlencoded to allow backticks/single quotes inside of it.
 String "string"
-  = "`" content:[^`]* "`" {
+  = "`" content:[^`]* "`" / "'" content:[^']* "'" {
     return decodeURIComponent(content.join(''));
   }
 
