@@ -105,9 +105,10 @@ Null "null"
     }
 
 // A symbol can contain any character except for those that:
-// 1) this grammar uses as delimiters (parentheses, comma, backtick)
+// 1) this grammar uses as delimiters (parentheses, comma, backtick,
+//    single quote, and square brackets);
 // 2) already have a function in query strings in the HTTP uri scheme or in
-//    HTTP conventions (ampersand, equals, plus, left + right square bracket);
+//    HTTP conventions (ampersand, equals, plus);
 // 3) are not allowed in query strings (#); or that
 // 4) I want to reserve for future expansions of this grammar (:, @, $, *, ;)
-SymbolChar = [^()`,&=+\[\]:@$*;]
+SymbolChar = [^(),`'\[\]&=+#:@$*;]

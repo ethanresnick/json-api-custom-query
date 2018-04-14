@@ -105,6 +105,11 @@ describe('Parser from underlying grammar', () => {
         .to.deep.equal([RawFieldExpression([true, Identifier("truedat")])]);
     });
 
+    it("may not have a quotation mark in it", () => {
+      expect(() => parseSort("'test'")).to.throw(/sort fields list but "'"/i);
+      expect(() => parseSort("are'te")).to.throw(/end of input but "'"/i);
+    })
+
     // Symbol literals should be totally unambiguous with number literals.
     it("should reject leading period, minus, and number in symbol names", () => {
       expect(() => { parseFilter("(-test)"); }).to.throw();
