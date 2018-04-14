@@ -191,6 +191,13 @@ describe('Parser from underlying grammar', () => {
     })
   });
 
+  describe("String", () => {
+    it("should support backtick + single quote strings", () => {
+      expect(parseFilter("(`test`,'test2')"))
+        .to.deep.equal([RawFieldExpression(['test', 'test2'])]);
+    });
+  })
+
   describe("Boolean, number, null", () => {
     it("should parse them into their js equivalents", () => {
       expect(parseFilter("(true,false,null)")).to.deep.equal([

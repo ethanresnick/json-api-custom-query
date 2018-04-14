@@ -51,7 +51,9 @@ Atom "atomic value (i.e., a non-list value)"
 // and single quotes are allowed as delimiters. We decode the content because,
 // it's urlencoded to allow backticks/single quotes inside of it.
 String "string"
-  = "`" content:[^`]* "`" / "'" content:[^']* "'" {
+  = "`" content:[^`]* "`" {
+    return decodeURIComponent(content.join(''));
+  } / "'" content:[^']* "'" {
     return decodeURIComponent(content.join(''));
   }
 
