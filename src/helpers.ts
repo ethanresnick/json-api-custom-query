@@ -91,10 +91,29 @@ export const finalizeFieldExpression =
       };
     }
 
+    // We need to throw an error at this point, so figure out which one.
+    // First, we catch [ value|binary, binary, ((nary|value|binary){2,})? ].
+    // Implicitly, list.length !== 3
+    if(isBinaryOperator(operators, list[1])) {
+      throw new SyntaxError(
+        `"${list[1].value}" is a binary operator, so the field expression ` +
+        "must have exactly three items."
+      )
+    }
+
+    // Then catch [binary] | [binary, nary | value, (binary|nary|value)*]
+    if(isBinaryOperator(operators, list[0])) {
+      throw new SyntaxError(
+        `"${list[0].value}" is a binary operator, so it must be infixed as ` +
+        "the second item in your field expression."
+      )
+    }
+
+    // Finally, catch [value] | [value, nary | value, (nary | binary | value)+]
     throw new SyntaxError(
-      "Field expressions must have a valid operator symbol as their first or " +
-      "second item, or must be a two-item list without any operators (in " +
-      "in which case the `eq` operator is inferred). If a binary operator is " +
-      "used explicitly, the expression must have exactly three items."
+      "Field expressions must have a valid operator symbol as their first " +
+      "item (for non-binary operators) or second item (for binary operators), " +
+      "or must be a two-item list without any operators (in which case the " +
+      "`eq` operator is inferred)."
     );
   });

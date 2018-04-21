@@ -101,7 +101,7 @@ describe("Filter param parsing", () => {
     });
 
     it("should reject if the item is a binary operator", () => {
-      expect(() => sut(eqOperator, "(eq)")).to.throw(/binary operator .+ exactly three items/);
+      expect(() => sut(eqOperator, "(eq)")).to.throw(/"eq" .+ binary .+ infixed/);
     });
 
     it("should treat as a no-arg expression if the arg is known + n-ary", () => {
@@ -125,8 +125,8 @@ describe("Filter param parsing", () => {
     });
 
     it("should not try to recognize a binary operator", () => {
-      const missingItemError = /binary operator .+ must have exactly three items/;
-      expect(() => sut(gteOperator, "(gte,1)")).to.throw(missingItemError);
+      const missingItemError = /binary .+ must have exactly three items/;
+      expect(() => sut(gteOperator, "(gte,1)")).to.throw(/"gte" .+ binary .+ infixed/);
       expect(() => sut(gteOperator, "(1,gte)")).to.throw(missingItemError);
       expect(() => sut(gteOperator, "(fieldName,gte)")).to.throw(missingItemError);
     });
@@ -174,13 +174,17 @@ describe("Filter param parsing", () => {
   });
 
   describe("4+-item lists", () => {
-    it("should reject if the first item isn't a known operator", () => {
+    it("should reject if the first item isn't a known nary operator", () => {
       expect(() => sut(eqOperator, "(now,test,3,14)"))
         .to.throw(/must have a valid operator/);
 
-      // This looks like it could be binary, but it has an extra arg.
+      // This looks like it could be binary, so error message is different.
       expect(() => sut(eqOperator, "(fieldName,eq,3,14)"))
-        .to.throw(/must have a valid operator/);
+        .to.throw(/"eq" .+ binary .+ exactly three items/);
+
+      // As above, different error because input may have been intended as binary
+      expect(() => sut(eqOperator, "(eq,3,14,3)"))
+        .to.throw(/"eq" .+ binary .+ infixed/);
     });
 
     it("should wrap up all args into an array", () => {
