@@ -33,8 +33,10 @@ FieldExpression "field expression"
     };
   }
 
-// Note: using square brackets unencoded in URLs is of questionable legality,
-// but it doesn't seem to be an issue in practice.
+// Note: using square brackets unencoded in query params is legal under
+// WHATWG Url but illegal under RFC 3986. However, becauce RFC 3986 does
+// reserve square brackets as a delim more generally, RFC 3986 implementations
+// seem to allow them and leave them unencoded in practice, so it's a non-issue.
 // See https://stackoverflow.com/questions/11490326/is-array-syntax-using-square-brackets-in-url-query-strings-valid/49806195#49806195
 List "comma-separated list"
   = "[" head:Value tail:("," Value)* "]" {
@@ -47,13 +49,18 @@ EmptyList "empty list"
 Atom "atomic value (i.e., a non-list value)"
   = String / Keyword / Number / Symbol
 
-// See https://github.com/ethanresnick/json-api/issues/160 for why backticks
-// and single quotes are allowed as delimiters. We decode the content because,
-// it's urlencoded to allow backticks/single quotes inside of it.
+// Backticks are our preferred delimiter, because: unencoded double quotes
+// aren't allowed under any URL spec; and unencoded single quotes aren't allowed
+// under WHATWG URL, and many implementations that generally follow RFC 3986
+// encode single quotes even though RFC 3986 allows them unencoded. However,
+// unencoded backticks aren't allowed under RFC 3986, so we support the
+// exclamation point as a fallback delimiter for clients that refuse to make
+// requests with unencoded backticks. We decode the content b/c it's urlencoded
+// to allow ` / ! within it.
 String "string"
   = "`" content:[^`]* "`" {
     return decodeURIComponent(content.join(''));
-  } / "'" content:[^']* "'" {
+  } / "!" content:[^!]* "!" {
     return decodeURIComponent(content.join(''));
   }
 
@@ -106,9 +113,10 @@ Null "null"
 
 // A symbol can contain any character except for those that:
 // 1) this grammar uses as delimiters (parentheses, comma, backtick,
-//    single quote, and square brackets);
+//    exclamation points, and square brackets);
 // 2) already have a function in query strings in the HTTP uri scheme or in
 //    HTTP conventions (ampersand, equals, plus);
 // 3) are not allowed in query strings (#); or that
-// 4) I want to reserve for future expansions of this grammar (:, @, $, *, ;)
-SymbolChar = [^(),`'\[\]&=+#:@$*;]
+// 4) I want to reserve for future expansions of this grammar (:, @, $, *, ;, ')
+// Importantly, symbols can contain "%", to allow percent-encoded characters.
+SymbolChar = [^(),`!\[\]&=+#:@$*;']

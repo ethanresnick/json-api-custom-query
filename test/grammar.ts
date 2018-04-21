@@ -110,6 +110,13 @@ describe('Parser from underlying grammar', () => {
       expect(() => parseSort("are'te")).to.throw(/end of input but "'"/i);
     })
 
+
+    it("may have a percent sign in it", () => {
+      expect(parseSort("%C2%A9")).to.deep.equal([{
+        field: "©", direction: "ASC"
+      }]);
+    })
+
     // Symbol literals should be totally unambiguous with number literals.
     it("should reject leading period, minus, and number in symbol names", () => {
       expect(() => { parseFilter("(-test)"); }).to.throw();
@@ -197,8 +204,8 @@ describe('Parser from underlying grammar', () => {
   });
 
   describe("String", () => {
-    it("should support backtick + single quote strings", () => {
-      expect(parseFilter("(`test`,'test2')"))
+    it("should support backtick + exclamation point quoted strings", () => {
+      expect(parseFilter("(`test`,!test2!)"))
         .to.deep.equal([RawFieldExpression(['test', 'test2'])]);
     });
   })
