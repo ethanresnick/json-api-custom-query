@@ -14,12 +14,12 @@ SortField "sort field"
   = desc:"-"? fieldOrExp:(FieldExpression / Symbol) {
     const direction = desc ? 'DESC' : 'ASC';
 
-    return {
-      direction,
-      ...(fieldOrExp && fieldOrExp.type === 'RawFieldExpression'
+    return Object.assign(
+      { direction },
+      (fieldOrExp && fieldOrExp.type === 'RawFieldExpression'
         ? { expression: fieldOrExp }
         : { field: fieldOrExp.value })
-    };
+    );
   }
 
 Value "field expression, atomic value, or comma-separated list"
