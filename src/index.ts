@@ -1,2 +1,3 @@
 import parseFilter from './filter-param-parser';
-export { parseFilter };
+import parseSort from './sort-param-parser';
+export { parseFilter, parseSort };
