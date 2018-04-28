@@ -1,4 +1,5 @@
 import R = require("ramda");
+import { RawFieldExpression } from './parser';
 
 export type Identifier = { type: "Identifier", value: string };
 export const isId = (it: any): it is Identifier => it && it.type === "Identifier";
@@ -14,6 +15,14 @@ export type FieldExpression = {
   type: "FieldExpression"
   operator: string;
   args: any[];
+};
+
+export type SortField = ({
+  field: string
+} | {
+  expression: FieldExpression
+}) & {
+  direction: "ASC" | "DESC"
 };
 
 /**
@@ -50,7 +59,7 @@ export const isNaryOperator =
  * rules (i.e., binary ops are infixed), the meaning of a RawFieldExpression is
  * fundamentally ambiguous until we run it through this function.
  */
-export const finalizeFieldExpression =
+export const toFieldExpression =
   R.curry((operators: OperatorsConfig, it: any): FieldExpression => {
     // We may won't have a list at runtime when this is called to
     // validate the args to the and/or operators, among other cases.
@@ -114,6 +123,34 @@ export const finalizeFieldExpression =
       "Field expressions must have a valid operator symbol as their first " +
       "item (for non-binary operators) or second item (for binary operators), " +
       "or must be a two-item list without any operators (in which case the " +
-      "`eq` operator is inferred)."
+      "`eq` operator is inferred, if it's supported)."
     );
   });
+
+
+export function finalizeFieldExpression(
+  operators: OperatorsConfig,
+  it: RawFieldExpression
+) {
+  const finalizedExp = toFieldExpression(operators, it);
+
+  // If the arguments in this expression contain other unprocessed
+  // field expressions, recursively finalize them, so we're not leaking
+  // unusable, proprietary-format RawFieldExpressions back to the consumer.
+  const finalArgs = operators[finalizedExp.operator]!.finalizeArgs(
+    operators,
+    finalizedExp.operator,
+    finalizedExp.args.map((arg: any) => {
+      if(arg && arg.type === 'RawFieldExpression') {
+        return finalizeFieldExpression(operators, arg);
+      }
+
+      return arg;
+    })
+  );
+
+  return {
+    ...finalizedExp,
+    args: finalArgs
+  };
+}

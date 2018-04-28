@@ -19,30 +19,9 @@ export default function parse(
   filterVal: string
 ): (FieldExpression)[] {
   const constraintLists = parser.parse(filterVal, { startRule: "Filter" });
-  const toFieldExpression = finalizeFieldExpression(filterOperators);
 
   // Process each filter expression.
-  return constraintLists.map(function toFinalExp(rawExp): FieldExpression {
-    const exp = toFieldExpression(rawExp);
-
-    // If the arguments in this expression contain other unprocessed
-    // field expressions, recursively finalize them, so we're not leaking
-    // unusable, proprietary-format RawFieldExpressions back to the consumer.
-    const finalArgs = filterOperators[exp.operator]!.finalizeArgs(
-      filterOperators,
-      exp.operator,
-      exp.args.map((arg: any) => {
-        if(arg && arg.type === 'RawFieldExpression') {
-          return toFinalExp(arg);
-        }
-
-        return arg;
-      })
-    );
-
-    return {
-      ...exp,
-      args: finalArgs
-    }
-  });
+  return constraintLists.map(rawExp =>
+    finalizeFieldExpression(filterOperators, rawExp)
+  );
 }
