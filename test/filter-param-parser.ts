@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 import { isId } from '../src/helpers';
-import { Identifier, FieldExpression } from './helpers';
+import { Identifier, FieldExpression } from './utils';
 import sut from '../src/filter-param-parser';
 
 const noValidationFinalizeArgs = function(a: any, b: any, args: any[]) {
@@ -104,7 +104,7 @@ describe("Filter param parsing", () => {
       expect(() => sut(eqOperator, "(eq)")).to.throw(/"eq" .+ binary .+ infixed/);
     });
 
-    it("should treat as a no-arg expression if the arg is known + n-ary", () => {
+    it("should treat as an expression with an empty arg list if the operator is known + n-ary", () => {
       expect(sut(nowOperator, "(now)")).to.deep.equal([
         FieldExpression("now", [])
       ]);
@@ -196,6 +196,15 @@ describe("Filter param parsing", () => {
       ]);
     });
   });
+
+  describe("multiple constraints", () => {
+    it("should support them, one listed directly after the other", () => {
+      expect(sut(withFieldOperators, "(a,lte,1)(a,4)")).to.deep.equal([
+        FieldExpression("lte", [Identifier("a"), 1]),
+        FieldExpression("eq", [Identifier("a"), 4])
+      ]);
+    });
+  })
 
   describe("finalizeArgs", () => {
     it("should call it recursively", () => {

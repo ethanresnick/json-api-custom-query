@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 import sut = require('../src/parser');
-import { Identifier, RawFieldExpression } from './helpers';
+import { Identifier, RawFieldExpression } from './utils';
 
 const parseFilter = (str: string) => sut.parse(str, { startRule: "Filter" });
 const parseSort = (str: string) => sut.parse(str, { startRule: "Sort" });
