@@ -115,8 +115,8 @@ Null "null"
 // 1) this grammar uses as delimiters (parentheses, comma, backtick,
 //    exclamation points, and square brackets);
 // 2) already have a function in query strings in the HTTP uri scheme or in
-//    HTTP conventions (ampersand, equals, plus);
+//    HTTP conventions (ampersand, equals, plus, question mark, slash);
 // 3) are not allowed in query strings (#); or that
 // 4) I want to reserve for future expansions of this grammar (:, @, $, *, ;, ')
 // Importantly, symbols can contain "%", to allow percent-encoded characters.
-SymbolChar = [^(),`!\[\]&=+#:@$*;']
+SymbolChar = [^(),`!\[\]&=+#:@$*;'?/]

@@ -110,12 +110,25 @@ describe('Parser from underlying grammar', () => {
       expect(() => parseSort("are'te")).to.throw(/end of input but "'"/i);
     })
 
+    it("may not have URL-meaningful characters in it (?, &, =, /)", () => {
+      expect(() => parseSort("?test'")).to.throw(/sort fields list but "?"/i);
+      expect(() => parseSort("te?st'")).to.throw(/end of input but "?"/i);
+
+      expect(() => parseSort("/arte")).to.throw(/sort fields list but "\/"/i);
+      expect(() => parseSort("are/te")).to.throw(/end of input but "\/"/i);
+
+      expect(() => parseSort("=arte")).to.throw(/sort fields list but "="/i);
+      expect(() => parseSort("are=te")).to.throw(/end of input but "="/i);
+
+      expect(() => parseSort("&arte")).to.throw(/sort fields list but "&"/i);
+      expect(() => parseSort("are&te")).to.throw(/end of input but "&"/i);
+    });
 
     it("may have a percent sign in it", () => {
       expect(parseSort("%C2%A9")).to.deep.equal([{
         field: "©", direction: "ASC"
       }]);
-    })
+    });
 
     // Symbol literals should be totally unambiguous with number literals.
     it("should reject leading period, minus, and number in symbol names", () => {
