@@ -7,17 +7,17 @@ const noValidationFinalizeArgs = function(a: any, b: any, args: any[]) {
 }
 
 const eqOperator = {
-  "eq": { isBinary: true, finalizeArgs: noValidationFinalizeArgs }
+  "eq": { arity: 2, finalizeArgs: noValidationFinalizeArgs }
 };
 
 const andOrOperators = {
-  "and": { isBinary: false, finalizeArgs: noValidationFinalizeArgs },
-  "or": { isBinary: false, finalizeArgs: noValidationFinalizeArgs }
+  "and": { arity: Infinity, finalizeArgs: noValidationFinalizeArgs },
+  "or": { arity: Infinity, finalizeArgs: noValidationFinalizeArgs }
 };
 
 const gteExtendedOperator = {
   "gte": {
-    isBinary: false,
+    arity: Infinity,
     // Defining a custom finalizeArgs shoudl override the built-in one.
     finalizeArgs(a: any, b: any, args: any[]) {
       return ["custom args"];

@@ -8,25 +8,25 @@ const noValidationFinalizeArgs = function(a: any, b: any, args: any[]) {
 }
 
 const eqOperator = {
-  "eq": { isBinary: true, finalizeArgs: noValidationFinalizeArgs }
+  "eq": { arity: 2, finalizeArgs: noValidationFinalizeArgs }
 };
 
 const andOrOperators = {
-  "and": { isBinary: false, finalizeArgs: noValidationFinalizeArgs },
-  "or": { isBinary: false, finalizeArgs: noValidationFinalizeArgs }
+  "and": { arity: Infinity, finalizeArgs: noValidationFinalizeArgs },
+  "or": { arity: Infinity, finalizeArgs: noValidationFinalizeArgs }
 };
 
 const gteOperator = {
-  "gte": { isBinary: true, finalizeArgs: noValidationFinalizeArgs }
+  "gte": { arity: 2, finalizeArgs: noValidationFinalizeArgs }
 };
 
 const nowOperator = {
-  "now": { isBinary: false, finalizeArgs: noValidationFinalizeArgs }
+  "now": { arity: 0, finalizeArgs: noValidationFinalizeArgs }
 }
 
 const andOrProperOperators = {
   "and-list": {
-    isBinary: false,
+    arity: Infinity,
     finalizeArgs(a: any, b: any, c: any[]) {
       if(!c.every(it => it && it.type === "FieldExpression")) {
         throw new Error("Arguments must be field expressions.");
@@ -35,7 +35,7 @@ const andOrProperOperators = {
     }
   },
   "or-list": {
-    isBinary: false,
+    arity: Infinity,
     finalizeArgs(a: any, b: any, c: any[]) {
       if(!c.every(it => it && it.type === "FieldExpression")) {
         throw new Error("Arguments must be field expressions.");
@@ -47,7 +47,7 @@ const andOrProperOperators = {
 
 const nowProperOperator = {
   "now": {
-    isBinary: false,
+    arity: 0,
     finalizeArgs(a: any, b: any, args: any[]) {
       if(args.length) {
         throw new Error("`now` operator cannot take any arguments.");
@@ -59,7 +59,7 @@ const nowProperOperator = {
 
 const withFieldOperators = {
   "eq": {
-    isBinary: true,
+    arity: 2,
     finalizeArgs(a: any, b: any, args: any[]) {
       if(!isId(args[0])) {
         throw new Error("field reference required as first argument.");
@@ -68,7 +68,7 @@ const withFieldOperators = {
     }
   },
   "lte": {
-    isBinary: true,
+    arity: 2,
     finalizeArgs(a: any, b: any, args: any[]) {
       if(!isId(args[0])) {
         throw new Error("field reference required as first argument.");
@@ -80,7 +80,7 @@ const withFieldOperators = {
 
 const gteExtendedOperator = {
   "gte": {
-    isBinary: false,
+    arity: Infinity,
     // Defining a custom finalizeArgs shoudl override the built-in one.
     finalizeArgs(a: any, b: any, args: any[]) {
       return ["custom args"];

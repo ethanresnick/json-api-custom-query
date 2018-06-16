@@ -6,7 +6,7 @@ export const isId = (it: any): it is Identifier => it && it.type === "Identifier
 
 export type OperatorsConfig = {
   [operatorName: string]: {
-    isBinary: boolean;
+    arity: number;
     finalizeArgs: (operators: OperatorsConfig, operator: string, args: any[]) => any[];
   } | undefined
 }
@@ -39,7 +39,7 @@ export const isKnownOperator =
  */
 export const isBinaryOperator =
   R.curry((operators: OperatorsConfig, node: any) => {
-    return isKnownOperator(operators, node) && operators[node.value]!.isBinary;
+    return isKnownOperator(operators, node) && operators[node.value]!.arity === 2;
   });
 
 /**
@@ -48,7 +48,7 @@ export const isBinaryOperator =
  */
 export const isNaryOperator =
   R.curry((operators: OperatorsConfig, node: any) => {
-    return isKnownOperator(operators, node) && !(operators[node.value]!.isBinary);
+    return isKnownOperator(operators, node) && operators[node.value]!.arity !== 2;
   });
 
 /**
