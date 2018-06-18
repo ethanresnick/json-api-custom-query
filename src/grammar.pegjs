@@ -16,7 +16,7 @@ SortField "sort field"
 
     return Object.assign(
       { direction },
-      (fieldOrExp && fieldOrExp.type === 'RawFieldExpression'
+      (fieldOrExp && fieldOrExp.type === 'FieldExpression'
         ? { expression: fieldOrExp }
         : { field: fieldOrExp.value })
     );
@@ -26,10 +26,32 @@ Value "field expression, atomic value, or comma-separated list"
   = FieldExpression / List / EmptyList / Atom
 
 FieldExpression "field expression"
-  = "(" head:Value tail:("," Value)* ")" {
+  = PrefixFieldExpression / InfixFieldExpression / EqFieldExpression
+
+PrefixFieldExpression "field expression with prefixed operator"
+  = "(:" operator:Symbol args:("," Value)* ")" {
     return {
-      type: "RawFieldExpression",
-      items: [head, ...(tail ? tail.map(it => it[1]) : [])]
+      type: "FieldExpression",
+      operator: operator.value,
+      args: (args ? args.map(it => it[1]) : [])
+    };
+  }
+
+InfixFieldExpression "field expression with infixed binary operator"
+  = "(" arg0:Value ",:" operator:Symbol "," arg1:Value ")" {
+    return {
+      type: "FieldExpression",
+      operator: operator.value,
+      args: [arg0, arg1]
+    };
+  }
+
+EqFieldExpression "field expression with implicit eq operator"
+  = "(" arg0:Value "," arg1:Value ")" {
+    return {
+      type: "FieldExpression",
+      operator: "eq",
+      args: [arg0, arg1]
     };
   }
 
