@@ -1,5 +1,6 @@
 import parser = require("./parser");
-import { OperatorsConfig, FieldExpression, finalizeFieldExpression } from './helpers';
+import finalizeFieldExpression from './finalizeFieldExpression';
+import { OperatorsConfig, FieldExpression } from '../helpers';
 
 /**
  * Takes a set of operator descriptions for operators that are all legal in
@@ -17,11 +18,8 @@ import { OperatorsConfig, FieldExpression, finalizeFieldExpression } from './hel
 export default function parse(
   filterOperators: OperatorsConfig,
   filterVal: string
-): (FieldExpression)[] {
-  const constraintLists = parser.parse(filterVal, { startRule: "Filter" });
-
-  // Process each filter expression.
-  return constraintLists.map(rawExp =>
-    finalizeFieldExpression(filterOperators, rawExp)
-  );
+): FieldExpression[] {
+  return parser
+    .parse(filterVal, { startRule: "Filter" })
+    .map(fieldExp => finalizeFieldExpression(filterOperators, fieldExp));
 }

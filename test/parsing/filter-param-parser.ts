@@ -1,7 +1,7 @@
 const { expect } = require("chai");
-import { isId, isFieldExpression } from '../src/helpers';
+import { isIdentifier, isFieldExpression } from '../../src/helpers';
 import { Identifier, FieldExpression } from './utils';
-import sut from '../src/filter-param-parser';
+import sut from '../../src/parsing/filter-param-parser';
 
 const noValidationFinalizeArgs = function(a: any, b: any, args: any[]) {
   return args;
@@ -60,7 +60,7 @@ const eqProperOperator = {
   "eq": {
     arity: 2,
     finalizeArgs(a: any, b: any, args: any[]) {
-      if(!isId(args[0])) {
+      if(!isIdentifier(args[0])) {
         throw new Error("field reference required as first argument.");
       }
       return args;

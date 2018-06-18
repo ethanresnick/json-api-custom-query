@@ -1,10 +1,9 @@
 const { expect } = require("chai");
-import sut = require('../src/parser');
+import sut = require('../../src/parsing/parser');
 import { Identifier, FieldExpression } from './utils';
 
 const parseFilter = (str: string) => sut.parse(str, { startRule: "Filter" });
 const parseSort = (str: string) => sut.parse(str, { startRule: "Sort" });
-const parseSymbol = (str: string) => sut.parse(str, { startRule: "Symbol" as any });
 
 describe('Parser from underlying grammar', () => {
   describe("Filter", () => {
@@ -136,6 +135,10 @@ describe('Parser from underlying grammar', () => {
       expect(() => parseFilter("(a,b,c)")).to.throw();
     });
 
+    it("should reject constraints with two operators", () => {
+      expect(() => parseFilter("(:a,:b,c,d)")).to.throw();
+    });
+
     it("should infer the eq operator from two item lists with no operator", () => {
       expect(parseFilter("(fieldName,1)")).to.deep.equal([
         FieldExpression("eq", [Identifier("fieldName"), 1])
@@ -211,6 +214,12 @@ describe('Parser from underlying grammar', () => {
       expect(parseSort("%C2%A9")).to.deep.equal([{
         field: "©", direction: "ASC"
       }]);
+
+      expect(parseSort("(:test,`%22J%26J%22%21%2C%20%27You%20know%20%28it%29%2C%20and%20%2a.`)"))
+        .to.deep.equal([{
+          direction: "ASC",
+          expression: FieldExpression("test", ['"J&J"!, \'You know (it), and *.'])
+        }])
     });
 
     // Symbol literals should be totally unambiguous with number literals and
@@ -221,7 +230,7 @@ describe('Parser from underlying grammar', () => {
       expect(() => { parseFilter("(:op,1d)"); }).to.throw();
       expect(() => { parseFilter("(:op,.test)"); }).to.throw();
       expect(() => { parseFilter("(:op,.22d)"); }).to.throw();
-      expect(() => { parseSymbol(":a22"); }).to.throw();
+      expect(() => { parseFilter("(:a,true,:a22)"); }).to.throw();
     })
 
     it("should allow periods, minus signs, and numbers in symbol names", () => {

@@ -1,5 +1,6 @@
 import parser = require("./parser");
-import { OperatorsConfig, SortField, finalizeFieldExpression } from './helpers';
+import finalizeFieldExpression from './finalizeFieldExpression';
+import { OperatorsConfig, SortField } from '../helpers';
 
 /**
  * Takes a set of operator descriptions for operators that are all legal in
@@ -17,16 +18,17 @@ import { OperatorsConfig, SortField, finalizeFieldExpression } from './helpers';
 export default function parse(
   sortOperators: OperatorsConfig,
   sortVal: string
-): (SortField)[] {
-  const sortFields = parser.parse(sortVal, { startRule: "Sort" });
-  return sortFields.map(function(rawSortField): SortField {
-    if(!("expression" in rawSortField)) {
-      return rawSortField;
-    }
+): SortField[] {
+  return parser
+    .parse(sortVal, { startRule: "Sort" })
+    .map(function(sortField): SortField {
+      if(!("expression" in sortField)) {
+        return sortField;
+      }
 
-    return {
-      ...rawSortField,
-      expression: finalizeFieldExpression(sortOperators, rawSortField.expression)
-    };
-  });
+      return {
+        ...sortField,
+        expression: finalizeFieldExpression(sortOperators, sortField.expression)
+      };
+    });
 }

@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 import { Identifier, FieldExpression } from './utils';
-import sut from '../src/sort-param-parser';
+import sut from '../../src/parsing/sort-param-parser';
 
 const noValidationFinalizeArgs = function(a: any, b: any, args: any[]) {
   return args;

@@ -1,5 +1,4 @@
 // Constructors for various AST nodes
-
 export const Identifier = (value: string) => ({
   type: "Identifier",
   value

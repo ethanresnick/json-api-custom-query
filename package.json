@@ -6,12 +6,13 @@
   "typings": "build/src/index.d.ts",
   "scripts": {
     "clean": "rimraf build",
-    "build:parser": "pegjs --allowed-start-rules Sort,Filter -o src/parser.js src/grammar.pegjs",
+    "copy-parser": "cpr src/parsing/parser.js build/src/parsing/parser.js && cpr src/parsing/parser.d.ts build/src/parsing/parser.d.ts",
+    "build:parser": "pegjs --allowed-start-rules Sort,Filter -o src/parsing/parser.js src/parsing/grammar.pegjs",
     "build:ts": "echo Using TypeScript && tsc --version && tsc --pretty",
     "build": "npm run clean && npm run build:parser && npm run build:ts",
     "test": "npm run build:parser && npm run test:built",
     "test:built": "NODE_ENV=testing mocha --compilers ts:ts-node/register --recursive test/ --full-trace --check-leaks",
-    "prepare": "npm run build && cpr src/parser.js build/src/parser.js && cpr src/parser.d.ts build/src/parser.d.ts"
+    "prepare": "npm run build && npm run copy-parser"
   },
   "author": "Ethan Resnick <ethan.resnick@gmail.com>",
   "license": "ISC",
