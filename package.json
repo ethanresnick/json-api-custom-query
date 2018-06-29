@@ -1,6 +1,6 @@
 {
   "name": "@json-api/querystring",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A query parser/serializer for the ?filter and ?sort param syntax used by the json-api library",
   "main": "build/src/index.js",
   "typings": "build/src/index.d.ts",
@@ -16,9 +16,9 @@
   },
   "author": "Ethan Resnick <ethan.resnick@gmail.com>",
   "license": "ISC",
-  "repository" : {
-    "type" : "git",
-    "url" : "https://github.com/ethanresnick/json-api-custom-query.git"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ethanresnick/json-api-custom-query.git"
   },
   "devDependencies": {
     "@types/chai": "^4.1.2",
