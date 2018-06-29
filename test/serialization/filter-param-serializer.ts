@@ -27,6 +27,9 @@ const legalFilterToSerialization = {
   "(:test,.99,-.99,0.99,011.99,001.99)": "(:test,0.99,-0.99,0.99,11.99,1.99)",
   "(:a.22d)": true,
 
+  // identifiers must get escaped on serialize.
+  "(:op,%22J%26J%22%21%2C%20%27You%20know%20%28it%29%2C%20and%20%2a.)": true,
+
   // our serializer only knows about backtick string form atm.
   "(:and,`test`,!test2!)": "(`test`,:and,`test2`)",
   "(:op,true,false,null)": true,

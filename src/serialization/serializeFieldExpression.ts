@@ -24,7 +24,7 @@ export default function serializeNode(node: FieldExpressionEntry): string {
   }
 
   else if(isIdentifier(node)) {
-    return String(node.value);
+    return encodeComponentString(node.value);
   }
 
   else if(Array.isArray(node)) {
