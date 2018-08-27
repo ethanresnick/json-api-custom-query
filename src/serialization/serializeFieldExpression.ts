@@ -1,5 +1,5 @@
 import { FieldExpressionEntry, isFieldExpression, isIdentifier } from '../helpers';
-import encodeComponentString from './encodeComponentString';
+import { encodeStringContents, encodeSymbolValue } from './encodeComponentString';
 
 /**
  * This function serializes a FieldExpression, recursively serializing the
@@ -20,11 +20,11 @@ export default function serializeNode(node: FieldExpressionEntry): string {
   }
 
   else if (typeof node === 'string') {
-    return "`" + encodeComponentString(node) + "`";
+    return "`" + encodeStringContents(node) + "`";
   }
 
   else if(isIdentifier(node)) {
-    return encodeComponentString(node.value);
+    return encodeSymbolValue(node.value);
   }
 
   else if(Array.isArray(node)) {
@@ -32,7 +32,7 @@ export default function serializeNode(node: FieldExpressionEntry): string {
   }
 
   else if(isFieldExpression(node)) {
-    const serializedOperator = ":" + encodeComponentString(node.operator);
+    const serializedOperator = ":" + encodeSymbolValue(node.operator);
     const serializedArgs = node.args.map(serializeNode);
 
     if(node.args.length === 2) {

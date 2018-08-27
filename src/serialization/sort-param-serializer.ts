@@ -1,6 +1,6 @@
 import { SortField } from '../helpers';
 import serialize from './serializeFieldExpression';
-import encodeComponentString from './encodeComponentString';
+import { encodeSymbolValue } from './encodeComponentString';
 
 export default function serializeSort(exps: SortField[]) {
   return exps.map(it => {
@@ -8,7 +8,7 @@ export default function serializeSort(exps: SortField[]) {
       (  it.direction === "DESC" ? '-' : '') +
       ("expression" in it
         ? serialize(it.expression)
-        : encodeComponentString(it.field))
+        : encodeSymbolValue(it.field))
     );
   }).join(",");
 }
