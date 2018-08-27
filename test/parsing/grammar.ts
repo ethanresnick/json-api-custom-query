@@ -251,6 +251,30 @@ describe('Parser from underlying grammar', () => {
       ]);
     });
 
+    it("should not allow delete or control chars in symbol names", () => {
+      expect(() => { parseFilter("(\u0000,\u0000)"); }).to.throw();
+      expect(() => { parseFilter("(:a,\u007F)"); }).to.throw();
+    });
+
+    it("should not allow invalid url ascii chars (e.g., ^, <, >) in symbol names", () => {
+      // According to RFC 3986, these chars simply can't appear in a URL.
+      // For some, like <> and "", it's because the RFC assumes they'll be
+      // used to surround urls to delimit them in other text. For others,
+      // to quote from RFC 2396 (which actually originally defines this set),
+      // it's because: "gateways and other transport agents are known to
+      // sometimes modify such characters, or they are used as delimiters."
+      expect(() => { parseFilter("(:<,a)"); }).to.throw();
+      expect(() => { parseFilter("(:a,^)"); }).to.throw();
+      expect(() => { parseFilter("(:a,>)"); }).to.throw();
+      expect(() => { parseFilter("(:a,})"); }).to.throw();
+      expect(() => { parseFilter("(:a,{)"); }).to.throw();
+      expect(() => { parseFilter("(:a,\")"); }).to.throw();
+    });
+
+    it("should not allow non-ascii in symbol names", () => {
+      expect(() => { parseFilter("(:<,\u8888)"); }).to.throw();
+    });
+
     it("should not allow [] in symbol names", () => {
       expect(() => parseFilter("(true,:ast[rst,false)")).to.throw(/expected field expression/i)
       expect(() => parseFilter("(true,:astrs]t,false)")).to.throw(/expected field expression/i)

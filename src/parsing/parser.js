@@ -242,8 +242,8 @@ function peg$parse(input, options) {
       peg$c61 = function() {
             return null;
           },
-      peg$c62 = /^[^(),`![\]&=+#:@$*;'?\/]/,
-      peg$c63 = peg$classExpectation(["(", ")", ",", "`", "!", "[", "]", "&", "=", "+", "#", ":", "@", "$", "*", ";", "'", "?", "/"], true, false),
+      peg$c62 = /^[%\-_.0-9A-Za-z~]/,
+      peg$c63 = peg$classExpectation(["%", "-", "_", ".", ["0", "9"], ["A", "Z"], ["a", "z"], "~"], false, false),
 
       peg$currPos          = 0,
       peg$savedPos         = 0,

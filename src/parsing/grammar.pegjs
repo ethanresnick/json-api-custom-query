@@ -138,7 +138,24 @@ Null "null"
 //    exclamation points, and square brackets);
 // 2) already have a function in query strings in the HTTP uri scheme or in
 //    HTTP conventions (ampersand, equals, plus, question mark, slash);
-// 3) are not allowed in query strings (#); or that
-// 4) I want to reserve for future expansions of this grammar (:, @, $, *, ;, ')
+// 3) are not allowed in query strings (#);
+// 4) I want to reserve for future expansions of this grammar (:, @, $, *, ;, '); or,
+// 5) are not allowed to appear directly/unencoded in urls.
+//    Per RFC 2396, section 2.4.3, this includes:
+//    - non-sensical characters like the ascii control characters (which
+//      include various spaces), and the delete char; but also
+//    - characters like '^', '<', ''>', '"' and the standard space; and
+//    - high valued/non-ascii unicode characters (U+0080 and up), since uris
+//      are ascii only.
+//
 // Importantly, symbols can contain "%", to allow percent-encoded characters.
-SymbolChar = [^(),`!\[\]&=+#:@$*;'?/]
+//
+// Previously, I implemented excluding groups 1-4 with a regex like:
+// [^(),`!\[\]&=+#:@$*;'?/]
+//
+// At this point, though, it's easier to just have a regex describing what
+// *is* allowed.
+//
+// Note: JSON:API member names are slightly more restrictive in the ascii
+// punctuation they allow, but more permissive in allowing non-ascii unicode.
+SymbolChar = [%\-_.0-9A-Za-z~]
