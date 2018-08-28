@@ -1,6 +1,8 @@
 const { expect } = require("chai");
+import jsc = require("jsverify");
 import sut from '../../src/serialization/sort-param-serializer';
 import parser = require('../../src/parsing/parser');
+import { FieldExpression, Identifier, Symbol as SymbolArb } from "./shared-arbitraries";
 
 const legalSortsToSerialization = {
   "fieldA,(ax,:x,x)": true,
@@ -24,8 +26,33 @@ const legalSortsToSerialization = {
   "%2e": "%2E" // encoding should normalize to upper case
 };
 
+const SortDirection = jsc.oneof([jsc.constant("ASC"), jsc.constant("DESC")]);
+const SortField = jsc.oneof([
+  jsc.record({
+    direction: SortDirection,
+    field: SymbolArb
+  }),
+  jsc.record({
+    direction: SortDirection,
+    expression: FieldExpression
+  })
+]);
+
+const Sort = jsc.nearray(SortField);
+
 describe("Sort Serialization", () => {
-  it("should be the inverse of parsing", () => {
+  it("should be the inverse of parsing (generated cases)", () => {
+    jsc.assert(
+      jsc.forall(Sort, (parsed) => {
+        const serialized = sut(parsed as any); //normalized
+        const reparsed = parser.parse(serialized, { startRule: "Sort" });
+        expect(reparsed).to.deep.equal(parsed);
+        return true;
+      })
+    );
+  }).timeout(Infinity);
+
+  it("should be the inverse of parsing (manual cases)", () => {
     Object.keys(legalSortsToSerialization).forEach(k => {
       const v = legalSortsToSerialization[k as keyof typeof legalSortsToSerialization];
       const expected = v === true ? k : v;

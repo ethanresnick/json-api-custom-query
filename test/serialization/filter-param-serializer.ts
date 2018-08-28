@@ -2,7 +2,7 @@ const { expect } = require("chai");
 import jsc = require("jsverify");
 import sut from '../../src/serialization/filter-param-serializer';
 import parser = require('../../src/parsing/parser');
-import { Identifier, Atom } from '../../src/parsing/parser';
+import { FieldExpression } from "./shared-arbitraries";
 
 // Below, we have legal strings extracted from the parsing tests.
 // If the value's true, means that parsing and then serializing the key gives
@@ -43,32 +43,6 @@ const legalFilterToSerialization = {
   "(:%C2%A9)": true,
   "(:op,%22J%26J%22%21%2C%20%27You%20know%20%28it%29%2C%20and%20%2A.)": true,
 };
-
-// symbols (in identifiers and operators) are just jsc.nestring because,
-// after decoding, any character can show up in a symbol.
-const Identifier = jsc.record({
-  type: jsc.constant("Identifier" as "Identifier"),
-  value: jsc.nestring
-});
-
-const Atom = jsc.oneof<any>([
-  jsc.bool, jsc.string, jsc.number, jsc.constant(null), Identifier
-]);
-
-const { FieldExpression } = (jsc as any).letrec((tie: any) => ({
-  FieldExpressionEntry: jsc.bless({
-    generator: jsc.generator.recursive(
-      // we need .small or we'll likely bust the stack.
-      jsc.generator.small(jsc.oneof([Atom, tie("FieldExpression")]).generator),
-      (gen) => jsc.generator.array(gen)
-    )
-  }),
-  FieldExpression: jsc.record({
-    type: jsc.constant("FieldExpression"),
-    operator: jsc.nestring,
-    args: jsc.array(tie("FieldExpressionEntry"))
-  })
-}));
 
 const Filter = jsc.nearray(FieldExpression);
 
