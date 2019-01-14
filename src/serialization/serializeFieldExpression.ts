@@ -12,8 +12,37 @@ import { encodeStringContents, encodeSymbolValue } from './encodeComponentString
  */
 export default function serializeNode(node: FieldExpressionEntry): string {
   if(node === null || typeof node === "boolean" || typeof node === "number") {
-    if(typeof node === 'number' && !Number.isFinite(node)) {
-      throw new Error("There's no way to serialize infinite numbers or NaN.");
+    // Numbers have various annoying special cases.
+    if(typeof node === 'number') {
+      if(!Number.isFinite(node)) {
+        throw new Error("There's no way to serialize infinite numbers or NaN.");
+      }
+
+      // For very very large or small numbers, converting them to a string
+      // renders them in exponential notation. E.g., String(.000000233296304941)
+      // becomes "2.33296304941e-7". That's a problem, because then we can't
+      // parse it back with the e. So, we need to use the internationalization
+      // number formatting APIs in that case.
+      const numberString = String(node);
+      if(!numberString.toLowerCase().includes("e")) {
+        return numberString;
+      }
+
+      // Note: we throw if toLocaleString doesn't support internationalization
+      // options. That's ok, as we don't run this code unless we get a number
+      // we can't serialize any other easy way.
+      const toLocaleStringSupportsOptions = typeof Intl == 'object'
+        && Intl && typeof Intl.NumberFormat === 'function';
+
+      if (!toLocaleStringSupportsOptions) {
+        throw new Error("This number was too big or too small to serialize.");
+      }
+
+      return node.toLocaleString("en-US", {
+        useGrouping: false,
+        maximumSignificantDigits: 21,
+        minimumSignificantDigits: 1
+      });
     }
 
     return String(node);

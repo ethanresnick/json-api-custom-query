@@ -54,7 +54,8 @@ describe("Filter Serialization", () => {
         const reparsed = parser.parse(serialized, { startRule: "Filter" });
         expect(reparsed).to.deep.equal(parsed);
         return true;
-      })
+      }),
+      { tests: 10000, size: 40 }
     );
   }).timeout(Infinity);
 
