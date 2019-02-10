@@ -561,6 +561,7 @@ function peg$parse(input, options) {
 
     peg$silentFails++;
     s0 = peg$currPos;
+    input = decodeURI(input);
     if (input.substr(peg$currPos, 2) === peg$c11) {
       s1 = peg$c11;
       peg$currPos += 2;
