@@ -101,7 +101,7 @@ Symbol "symbol (i.e., a field or operator name)"
 
 Number "number"
   = isNegative:"-"? (([0-9]+ ("." [0-9]+)?) / "." [0-9]+) {
-      return parseFloat(text());
+      return Number(text());
     }
 
 // A naive grammar for booleans and null (e.g., Null = "null") would match the
