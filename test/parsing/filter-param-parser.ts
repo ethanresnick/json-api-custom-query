@@ -68,6 +68,18 @@ const eqProperOperator = {
   }
 }
 
+const invalidOperators = {
+  "9": eqProperOperator.eq,
+  "-34": eqProperOperator.eq,
+  "true": eqProperOperator.eq,
+  "null": eqProperOperator.eq,
+  "false": eqProperOperator.eq
+}
+
+const idOperator = {
+  "id": { arity: 1, finalizeArgs(a: any, b: any, args: any[]) { return args; } }
+};
+
 describe("Filter param parsing", () => {
   // Here, we're only testing stuff not covered by the parser tests. We could
   // explicitly test "does it call parseFilter", but that's probably overkill.
@@ -84,6 +96,45 @@ describe("Filter param parsing", () => {
   it("should validate arity of the *finalized* arg set", () => {
     expect(() => sut(gteExtendedOperator, "(:gte,1)")).to.not.throw();
     expect(() => sut(gteExtendedOperator, "(:gte,1,2,3)")).to.not.throw();
+  });
+
+  describe("treating %-encoded unreserved characters like unencoded ones", () => {
+    it("should reject leading minus sign in symbol names", () => {
+      /* %2D = "-" */
+      const msg = 'Expected field expression but "(" found.';
+      expect(() => sut(invalidOperators, "(:%2Dabc)")).to.throw(msg);
+      expect(() => sut(invalidOperators, "(:%2d)")).to.throw(msg);
+      expect(() => sut(invalidOperators, "(:-34)")).to.throw(msg);
+      expect(() => sut(invalidOperators, "(:%2d34)")).to.throw(msg);
+    })
+
+    it("should treat url-encoded keywords, number literals as non-symbol values", () => {
+      const msg = 'Expected field expression but "(" found.';
+      expect(() => sut(invalidOperators, "(:%39)") /* %39 = "9" */).to.throw(msg);
+      expect(() => sut(invalidOperators, "(:%74rue)") /* %74 = "t" */).to.throw(msg);
+      expect(() => sut(invalidOperators, "(:%6Eull)") /* %6E = "n" */).to.throw(msg);
+      expect(() => sut(invalidOperators, "(:%66alse)") /* %66 = "f" */).to.throw(msg);
+      expect(() => sut(invalidOperators, "(:f%61lse)") /* %61 = "a" */).to.throw(msg);
+      expect(() => sut(invalidOperators, "(:n%75ll)") /* %75 = "u" */).to.throw(msg);
+
+      expect(sut(idOperator, "(:id,%74rue)") /* %74 = "t" */).to.deep.equal([{
+        type: "FieldExpression",
+        operator: "id",
+        args: [true]
+      }]);
+
+      expect(sut(idOperator, "(:id,%6Eull)") /* %6E = "n" */).to.deep.equal([{
+        type: "FieldExpression",
+        operator: "id",
+        args: [null]
+      }]);
+
+      expect(sut(idOperator, "(:id,%66alse)") /* %66 = "f" */).to.deep.equal([{
+        type: "FieldExpression",
+        operator: "id",
+        args: [false]
+      }]);
+    });
   });
 
   describe("finalizeFieldExpression/finalizeArgs", () => {

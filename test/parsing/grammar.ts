@@ -95,6 +95,10 @@ describe('Parser from underlying grammar', () => {
         { direction: "DESC", expression: FieldExpression("eq", [1, 1]) },
       ]);
     });
+
+    it("should reject direction with missing symbol", () => {
+      expect(() => parseSort("-")).to.throw('Expected sort fields list but "-" found.');
+    });
   });
 
   describe("Field expression lists", () => {
@@ -222,15 +226,22 @@ describe('Parser from underlying grammar', () => {
         }])
     });
 
-    // Symbol literals should be totally unambiguous with number literals and
-    // our operator prefix sigil.
-    it("should reject leading period, minus, colon, and number in symbol names", () => {
+    // Symbol literals should be totally unambiguous with number literals,
+    // our direction indicator, and our operator prefix sigil.
+    it("should reject leading minus, colon, and number in symbol names", () => {
       expect(() => { parseFilter("(:op,-test)"); }).to.throw();
       expect(() => { parseFilter("(:op,-22d)"); }).to.throw();
       expect(() => { parseFilter("(:op,1d)"); }).to.throw();
-      expect(() => { parseFilter("(:op,.test)"); }).to.throw();
       expect(() => { parseFilter("(:op,.22d)"); }).to.throw();
       expect(() => { parseFilter("(:a,true,:a22)"); }).to.throw();
+
+      expect(() => parseFilter("(:-)")).to.throw();
+      expect(() => parseSort("--x")).to.throw();
+      expect(() => parseFilter("(:-34)")).to.throw();
+
+      // these start with a dot but aren't parseable as numbers
+      expect(() => { parseFilter("(:op,.test)"); }).to.not.throw();
+      expect(() => { parseFilter("(:op,.)"); }).to.not.throw();
     })
 
     it("should allow periods, minus signs, and numbers in symbol names", () => {
@@ -314,9 +325,8 @@ describe('Parser from underlying grammar', () => {
       expect(() => parseFilter("(:whatevs,-10.)")).to.throw();
     });
 
-    it('should reject just a decimal point', () => {
-      expect(() => parseFilter("(.,:gte,10)")).to.throw();
-      expect(() => parseFilter("(-.,:gte,0)")).to.throw();
+    it('should parse just a decimal point as a symbol', () => {
+      expect(parseSort(".")).to.deep.equal([{ field: ".", direction: 'ASC' }]);
     })
 
     it("should allow 0-prefixed integer parts", () => {

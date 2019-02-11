@@ -53,15 +53,7 @@ function customEncodeURIComponent(str: string) {
  * Encode the name of a symbol/identifier for use in a url.
  */
 export function encodeSymbolValue(str: string) {
-  const encoded = customEncodeURIComponent(str);
-
-  // Our grammar doesn't allow leading digits, hyphens, or periods in
-  // symbol names to appear literally, to prevent grammar ambiguity.
-  if(/[0-9\-.]/.test(encoded[0])) {
-    return percentEncodeAscii(encoded[0]) + encoded.slice(1);
-  }
-
-  return encoded;
+  return customEncodeURIComponent(str);
 }
 
 export { customEncodeURIComponent as encodeStringContents };

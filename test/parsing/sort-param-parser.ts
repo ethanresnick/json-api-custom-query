@@ -31,6 +31,25 @@ describe("Sort param parsing", () => {
     expect(() => sut(eqOperator, "(:now)")).to.throw(/"now" .+ recognized operator/);
   })
 
+  it("should reject direction with missing symbol", () => {
+    expect(() => sut(eqOperator, "%2d") /* %2D = "-" */).to.throw('Expected sort fields list but "-" found.');
+  });
+
+  it("should reject leading - signs in symbol names", () => {
+    expect(() => sut(eqOperator, "-%2dx")).to.throw('Expected sort fields list but "-" found.');
+    expect(() => sut(eqOperator, "--x")).to.throw('Expected sort fields list but "-" found.');
+  });
+
+  it("should reject url-encoded keywords, number literals as symbol names", () => {
+    expect(() => sut(eqOperator, "%39") /* %39 = "9" */).to.throw('Expected sort fields list but "9" found.');
+    expect(() => sut(eqOperator, "%74rue") /* %74 = "t" */).to.throw('Expected sort fields list but "t" found.');
+    expect(() => sut(eqOperator, "%6Eull") /* %6E = "n" */).to.throw('Expected sort fields list but "n" found.');
+    expect(() => sut(eqOperator, "n%75ll") /* %75 = "u" */).to.throw('Expected sort fields list but "n" found.');
+    expect(() => sut(eqOperator, "%66alse") /* %66 = "f" */).to.throw('Expected sort fields list but "f" found.');
+    expect(() => sut(eqOperator, "f%61lse") /* %61 = "a" */).to.throw('Expected sort fields list but "f" found.');
+  });
+
+
   it("should (recursively) process the field expressions, calling finalizeArgs", () => {
     const sutWithOps = sut.bind(null, {
       ...eqOperator,

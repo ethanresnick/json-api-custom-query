@@ -1,6 +1,10 @@
 import parser = require("./parser");
 import finalizeFieldExpression from './finalizeFieldExpression';
-import { OperatorsConfig, SortField } from '../helpers';
+import {
+  OperatorsConfig,
+  SortField,
+  normalizePartialUriString
+} from '../helpers';
 
 /**
  * Takes a set of operator descriptions for operators that are all legal in
@@ -20,7 +24,7 @@ export default function parse(
   sortVal: string
 ): SortField[] {
   return parser
-    .parse(sortVal, { startRule: "Sort" })
+    .parse(normalizePartialUriString(sortVal), { startRule: "Sort" })
     .map(function(sortField): SortField {
       if(!("expression" in sortField)) {
         return sortField;

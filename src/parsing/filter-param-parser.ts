@@ -1,6 +1,10 @@
 import parser = require("./parser");
 import finalizeFieldExpression from './finalizeFieldExpression';
-import { OperatorsConfig, FieldExpression } from '../helpers';
+import {
+  OperatorsConfig,
+  FieldExpression,
+  normalizePartialUriString
+} from '../helpers';
 
 /**
  * Takes a set of operator descriptions for operators that are all legal in
@@ -20,6 +24,6 @@ export default function parse(
   filterVal: string
 ): FieldExpression[] {
   return parser
-    .parse(filterVal, { startRule: "Filter" })
+    .parse(normalizePartialUriString(filterVal), { startRule: "Filter" })
     .map(fieldExp => finalizeFieldExpression(filterOperators, fieldExp));
 }

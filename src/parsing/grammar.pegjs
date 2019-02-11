@@ -88,13 +88,14 @@ String "string"
 
 // Symbols are identifiers that can be dereferenced to a literal value within
 // some evaluation context. They're used for field/operator/function names.
-// They can't start with a minus sign, period, or digit to disambiguate them
-// from the number grammar, and to avoid confusion w/ a sort field's direction
-// indicator. We also ensure they don't match keywords, because using a
-// `Keyword / Symbol` ordered choice isn't enough to prevent keywords getting
-// matched as Symbols in cases where we can't have keywords (like SortFields).
+// They can't start with a minus sign, to avoid confusion w/ a sort field's
+// direction indicator, and they can't be parseable as numbers, to avoid
+// ambiguity with the number grammar. We also ensure they don't match keywords,
+// because using a `Keyword / Symbol` ordered choice isn't enough to prevent
+// keywords getting matched as Symbols in cases where we can't have keywords
+// (like SortFields).
 Symbol "symbol (i.e., a field or operator name)"
-  = ![0-9\-.] !Keyword content:SymbolChar+ {
+  = !"-" !Number !Keyword content:SymbolChar+ {
       return { type: "Identifier", value: decodeURIComponent(content.join('')) };
     }
 
@@ -135,11 +136,11 @@ Null "null"
 
 // A symbol can contain any character except for those that:
 // 1) this grammar uses as delimiters (parentheses, comma, backtick,
-//    exclamation points, and square brackets);
+//    exclamation points, colons [sorta, for operators], and square brackets);
 // 2) already have a function in query strings in the HTTP uri scheme or in
 //    HTTP conventions (ampersand, equals, plus, question mark, slash);
 // 3) are not allowed in query strings (#);
-// 4) I want to reserve for future expansions of this grammar (:, @, $, *, ;, '); or,
+// 4) I want to reserve for future expansions of this grammar (@, $, *, ;, '); or,
 // 5) are not allowed to appear directly/unencoded in urls.
 //    Per RFC 2396, section 2.4.3, this includes:
 //    - non-sensical characters like the ascii control characters (which

@@ -1,9 +1,18 @@
 import { Identifier, Atom } from '../../src/parsing/parser';
 import jsc = require("jsverify");
 
-// symbols (in identifiers and operators) are just jsc.nestring because,
-// after decoding, any character can show up in a symbol.
-const Symbol = jsc.nestring;
+// symbols (in identifiers and operators) are basically jsc.nestring because,
+// after decoding, any character can show up in a symbol. The exceptions are
+// the ones called out in the grammar. E.g., true, false, null and number
+// literals can't be symbol names, as those get parsed as keywords or numbers
+// respectively. (We could invent some special syntax for representing symbols
+// of those names, but that would totally not be worth it.) Likewise, symbols
+// can't start with
+const NumberRegexp = /^\-?(([0-9]+(\.[0-9]+)?)|\.[0-9]+)/;
+const Symbol = jsc.suchthat(jsc.nestring, (str) => {
+  return str !== "false" && str !== "true" && str !== "null"
+    && str[0] !== "-" && !NumberRegexp.test(str);
+});
 
 const Identifier = jsc.record({
   type: jsc.constant("Identifier" as "Identifier"),

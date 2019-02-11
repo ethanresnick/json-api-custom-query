@@ -18,12 +18,9 @@ const legalSortsToSerialization = {
   "test": true,
   "test,-test,(1,:eq,1),-(1,1)": "test,-test,(1,1),-(1,1)",
   "%C2%A9": true,
-  // tests that symbols can be begin with a [-\.0-9] character
-  // if it's encoded, even though these can't appear literally
-  // as leading chars to prevent ambiguity.
-  "%2D": true,
-  "%39": true,
-  "%2e": "%2E" // encoding should normalize to upper case
+
+  // should normalize to upper case
+  "%c2%a9": "%C2%A9"
 };
 
 const legalSortParses = [
@@ -32,23 +29,12 @@ const legalSortParses = [
     "expression": {
       "type": "FieldExpression",
       "operator": "hi",
-      "args": [2.3329630494117737e-7]
-    }
-  }],
-  [{
-    "direction": "ASC",
-    "expression": {
-      "type": "FieldExpression",
-      "operator": "hi",
-      "args": [179769313486992315799999999999992881938333299999912033]
-    }
-  }],
-  [{
-    "direction": "ASC",
-    "expression": {
-      "type": "FieldExpression",
-      "operator": "hi",
-      "args": [8e-324]
+      "args": [
+        2.3329630494117737e-7,
+        179769313486992315799999999999992881938333299999912033,
+        8e-324,
+        Math.pow(2,-43)
+      ]
     }
   }]
 ];
@@ -93,7 +79,7 @@ describe("Sort Serialization", () => {
         expect(reparsed).to.deep.equal(parsed);
         return true;
       }),
-      { tests: 20000, size: 20 }
+      { tests: 150000, size: Math.round(Math.random() * 50) }
     );
   }).timeout(Infinity);
 });
