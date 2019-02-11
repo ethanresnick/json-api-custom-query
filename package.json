@@ -1,6 +1,6 @@
 {
   "name": "@json-api/querystring",
-  "version": "1.0.2",
+  "version": "1.1.2",
   "description": "A query parser/serializer for the ?filter and ?sort param syntax used by the json-api library",
   "main": "build/src/index.js",
   "typings": "build/src/index.d.ts",
